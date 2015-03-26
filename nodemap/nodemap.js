@@ -30,6 +30,8 @@
     //TODO click stuff
   }
 
+  // ---------- Map class and methods ----------
+
   // Generate a node map on the jQuery selected objects
   $.fn.createNodeMap = function (options) {
     var initialSize = -1;
