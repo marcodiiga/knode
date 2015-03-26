@@ -1,48 +1,61 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-	<link href="nodemap/style.css" type="text/css" rel="stylesheet"/>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  <link href="nodemap/style.css" type="text/css" rel="stylesheet"/>
 
-	<!-- jQuery and UI for draggable nodes -->
-	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js" type="text/javascript"></script>
-	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.15/jquery-ui.min.js"></script>
-	<!-- Raphael for SVG graphics -->
-	<script type="text/javascript" src="nodemap/raphael/2.1.4/raphael-min.js"></script>
-	<!-- Node map -->
-	<script type="text/javascript" src="nodemap/nodemap.js"></script>
+  <!-- jQuery and UI for draggable nodes -->
+  <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js" type="text/javascript"></script>
+  <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.15/jquery-ui.min.js"></script>
+  <!-- Raphael for SVG graphics -->
+  <script type="text/javascript" src="nodemap/raphael/2.1.4/raphael-min.js"></script>
+  <!-- Node map -->
+  <script type="text/javascript" src="nodemap/nodemap.js"></script>
 
-	<script>
-		$(document).ready(function() {
-			$('body').createNodeMap();
+  <script>
+    $(document).ready(function() {
 
-			// Add the root node
-			$('body').addRootNode($('body>ul>li>a').text());
-			/*
+      // TODO: render this as $('body').createNodeMap().createNodes();
+
+      $('body').createNodeMap().createNodes();
+
+      // Add the root node with his text (only one root node can exist)
+      //var $rootNode = $nodeMap.addRootNode( $('body>ul>li>a').text() );
+
+      // TODO? hide the html ul list
+
+      //$('>ul>li', $rootNode).each (function() { // Foreach li item in $rootNode
+        //$nodeMap.addNode ($rootNode,
+        //  $(this).text() // Grab the first (0-indexed) child anchor text
+        //);
+        //  console.log($('a:eq(0)', this).text());
+        //});
+
+      /*
 var root = $('body>ul>li');
-			root.each (function() {
+      root.each (function() {
 
-			});*/
+      });*/
 
 
-		});
-	</script>
+    });
+  </script>
 
 </head>
 <body>
-	<!-- TODO: generate this list dynamically -->
-	<ul>
-		<li><a href="root node">Root node</a>
-			<ul>
-				<li><a href="subnode 1">Subnode 1</a></li>
-				<li><a href="subnode 2">Subnode 2 (also a list)</a></li>
-				<ul>
-					<li><a href="subnode 2-1">Sub Subnode 2-1</a></li>
-					<li><a href="subnode 2-2">Sub Subnode 2-2</a></li>
-				</ul>
-				<li><a href="subnode 3">Subnode 3</a></li>
-			</ul>
-		</li>
-	</ul>
+  <!-- TODO: generate this list dynamically -->
+  <ul>
+    <li><a href="root node">Root node</a>
+      <ul>
+        <li><a href="subnode 1">Subnode 1</a></li>
+        <li><a href="subnode 2">Subnode 2 (also a list)</a></li>
+        <ul>
+          <li><a href="subnode 2-1">Sub Subnode 2-1</a></li>
+          <li><a href="subnode 2-2">Sub Subnode 2-2</a></li>
+        </ul>
+        <li><a href="subnode 3">Subnode 3</a></li>
+      </ul>
+    </li>
+  </ul>
 </body>
 </html>

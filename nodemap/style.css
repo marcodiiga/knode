@@ -8,4 +8,6 @@
   border-top-left-radius: 20px;
   border-bottom-right-radius: 20px;
   z-index:100; /* needed otherwise the canvas will cover the nodes */
+  padding:5px 10px;
+  border-width:5px;
 }
