@@ -1,6 +1,6 @@
 .nodemap a.node { /* Nodes of a nodemap */
   background: red;
-  border: 3px solid white;
+  border: 3px solid black;
   -webkit-border-top-left-radius: 20px;
   -webkit-border-bottom-right-radius: 20px;
   -moz-border-radius-topleft: 20px;
