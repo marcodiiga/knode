@@ -2,9 +2,9 @@
   'use strict';
 
   var MOVEMENT_TIMEOUT = 4; // 4 seconds for the nodes' movement timeout
-  var CHILD_PARENT_INIT_DISTANCE = 250; // Starting child<->parent distance
-  var NODES_REPULSIVE_FACTOR = 3000;
-  var LINES_RESTORING_FACTOR = 30000;
+  var CHILD_PARENT_INIT_DISTANCE = 30; // Starting child<->parent distance
+  var NODES_REPULSIVE_FACTOR = 300;
+  var LINES_RESTORING_FACTOR = 3000;
 
   // ---------- Node and Line class and methods ----------
 
@@ -196,7 +196,7 @@
 
   // Using Coulomb's Law, calculate a repulsion force from another node
   Node.prototype.calculateSingleRepulsionForceFromNode = function (otherNode) {
-    var x, y, f, distance, theta, xsign, dx, dy;
+    var x, y, f, distance, theta, xsign, dx = 0, dy = 0;
     // Calculate x and y distance components between the nodes
     x = (otherNode.x - this.x);
     y = (otherNode.y - this.y);
@@ -224,7 +224,7 @@
 
   // Using Hooke's Law, calculate an attractive force towards another node
   Node.prototype.calculateSingleAttractiveForceTowardsNode = function (otherNode) {
-    var x, y, f, distance, theta, xsign, centerFactor = 1, dx = 0, dy = 0;
+    var x, y, f, distance, theta, xsign, dx = 0, dy = 0;
     // Calculate x and y distance components between the nodes
     x = (otherNode.x - this.x);
     y = (otherNode.y - this.y);
@@ -398,9 +398,14 @@
     $map.nodes[$map.nodes.length] = this.node; // Keep a list of all the nodes
                                                // for some distance calculations
     // Everytime a node is added its parent's subtree needs to be reshaped
-    if ($parent != null)
+    if ($parent != null) {
+      // Every other sibling of this node will have to be re-positioned around
+      // the parent for the first time the children are laid out
+      $.each ($parent.node.children, function () {
+        this.hasPosition = false;
+      });
       $parent.node.animateToStaticPosition (); // This node will drag its children
-    else
+    } else
       $map.selectedNode = this.node; // TODO: implement a selection mechanism, for now
                                      // the root is the selected element
 
