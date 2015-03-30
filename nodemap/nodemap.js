@@ -31,8 +31,8 @@
 
   var MOVEMENT_TIMEOUT = 4; // 4 seconds for the nodes' movement timeout
   var CHILD_PARENT_INIT_DISTANCE = 30; // Starting child<->parent distance
-  var NODES_REPULSIVE_FACTOR = 300;
-  var LINES_RESTORING_FACTOR = 3000;
+  var NODES_REPULSIVE_FACTOR = 460;
+  var LINES_RESTORING_FACTOR = 8000;
 
   // ---------- Node and Line class and methods ----------
 
@@ -252,7 +252,7 @@
                                   // function graph
       }
       // Calculate force for the given distance and apply its components
-      dampFactor = dampFactor || 1; // If provided, a dampFactor will dump this force
+      dampFactor = dampFactor || 1; // If provided, a dampFactor will damp this force
       f = NODES_REPULSIVE_FACTOR / (distance * distance * (dampFactor * dampFactor));
       dx = -f * Math.cos (theta) * xsign;
       dy = -f * Math.sin (theta) * xsign;
@@ -279,8 +279,8 @@
         xsign = x / Math.abs (x);
       }
       // Calculate Hooke's force and apply its components
-      dampFactor = dampFactor || 1; // If provided, a dampFactor will dump this force
-      f = (15 * distance * 0.01) / LINES_RESTORING_FACTOR;
+      dampFactor = dampFactor || 1; // If provided, a dampFactor will damp this force
+      f = (15 * distance * 0.01 * dampFactor) / LINES_RESTORING_FACTOR;
       dx = f * Math.cos (theta) * xsign;
       dy = f * Math.sin (theta) * xsign;
     }
@@ -313,8 +313,7 @@
         fy += f.dy;
       }
       // And also the repulsive force from my parent node
-      f = this.calculateSingleRepulsionForceFromNode (this.$parent.node,
-        this.depthLevel / (this.children.length * 0.5));
+      f = this.calculateSingleRepulsionForceFromNode (this.$parent.node);
       fx += f.dx;
       fy += f.dy;
     }
@@ -337,7 +336,8 @@
 
       // TODO: ignore hidden nodes' pulling (visible)
 
-      f = this.calculateSingleAttractiveForceTowardsNode (otherEnd);
+      f = this.calculateSingleAttractiveForceTowardsNode (otherEnd,
+        Math.pow(this.depthLevel, 3)); // Powerful damping if we're deeply nested
       fx += f.dx;
       fy += f.dy;
     }
@@ -391,7 +391,7 @@
 
     var initialSize = -1;
     options = $.extend({ // Add default options for our map to use
-      minimumForceThreshold : 0.002,
+      minimumForceThreshold : 0.05,
       mapArea: {
         width:  initialSize,
         height: initialSize
