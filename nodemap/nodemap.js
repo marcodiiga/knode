@@ -36,7 +36,8 @@
 
   // ---------- Node and Line class and methods ----------
 
-  var Node = function ($map, $parent, nodeName, href) { // Typical scope: Node object
+  // Typical scope: Node object
+  var Node = function ($map, $parent, nodeName, href, depthLevel) {
 
     this.$map         = $map;
     this.name         = nodeName;
@@ -44,12 +45,17 @@
     this.$parent      = $parent; // null for root object, $('a') for the others
     this.children     = [];      // Our children will populate this for us
     this.hasPosition  = false;   // Has this node been assigned an initial position?
-    this.moveTimer    = 0;       // Timer callback to move this node to equilibrium
-    this.dx = this.dy = 0;     // Force vector (tells this node where to go)
+    this.dx = this.dy = 0;       // Force vector (tells this node where to go)
+    this.isStable     = false; // True if this node is currently considered stable
+    this.depthLevel   = depthLevel; // The depth level of this node (used when
+                                    // adjusting forces to render deep children
+                                    // closer to their parents)
 
     // Create the node element in the page and append it to the map's object
     this.$element = $('<a href="' + this.href + '"><p>' + this.name + '</p></a>')
       .addClass('node');
+    this.$element.node = this; // The <a> element stores a reference to us and
+                               // we also store a reference to the <a> element
     this.$map.prepend (this.$element);
 
     this.elementWidth  = this.$element[0].offsetWidth;  // Can be 0 during moving
@@ -97,7 +103,8 @@
 
 
   // Returns 'true' if I reached stability (i.e. an equilibrium point where
-  // all the forces are below a threshold), otherwise return 'false'
+  // all the forces are below a threshold), otherwise return 'false'. The value
+  // is also stored in the node property 'stabilityReached'
   Node.prototype.stabilityReached = function () {
 
     // To determine if I reached stability I need to calculate my resulting
@@ -136,12 +143,17 @@
                        'top':  this.adjustedY + "px" });
   }
 
-  // Lay off radially this node around its father's position
+  // Lay off radially this node around its father's position. If the node has
+  // children, also lay them off around recursively
   Node.prototype.layNodeAroundParent = function (index) {
     var stepAngle = Math.PI * 2 / this.$parent.node.children.length; // Radiants
     var angle = index * stepAngle;
     this.x = (CHILD_PARENT_INIT_DISTANCE * Math.cos(angle)) + this.$parent.node.x;
     this.y = (CHILD_PARENT_INIT_DISTANCE * Math.sin(angle)) + this.$parent.node.y;
+    $.each (this.children, function (childIndex) {
+      this.layNodeAroundParent (childIndex);
+    });
+    this.takePosition (); // Immediately place this node
   }
 
   // Sets the wheels in motion for all the children of a specific node in order
@@ -174,15 +186,15 @@
   // Returns 'true' if the entire subtree (i.e. me and my child nodes)
   // have reached equilibrium positions
   Node.prototype.subtreeSeekEquilibrium = function () {
-    var stabilityReached = true; // Assume my subtree has reached stability
+    var isSubtreeStable = true; // Assume my subtree has reached stability
 
     // If my children haven't been positioned yet, lay them around me
-    $.each(this.children, function (index) {
+    $.each (this.children, function (index) {
         if (this.hasPosition == false) {
           this.layNodeAroundParent (index);
-          this.takePosition ();
-          this.hasPosition = true;
-        }
+          if (this.$parent.node.isStable) // Do NOT stabilize our position until
+            this.hasPosition = true; // our parent got stability. Creates a nice
+        }                            // radial effect when positioning children
     });
 
     // There's no point in asking if I'm stable if I'm being dragged.
@@ -192,18 +204,19 @@
         (this.$element.width() / 2); // Adjust the bottom-right dragging pos
       this.y = parseInt (this.$element.css('top'), 10) +
         (this.$element.height() / 2);
-      stabilityReached = false; // I'm surely not stable yet
+        isSubtreeStable = false; // I'm surely not stable yet
     } else { // If I'm not being dragged, I might be already stable
-      stabilityReached = this.stabilityReached() && stabilityReached; // Am I stable?
-      if (stabilityReached == false) // If I haven't reached stability, at least
-        this.takePosition (); // get me closer to achieve it
+      this.isStable = this.stabilityReached ();
+      isSubtreeStable =  this.isStable && isSubtreeStable; // Am I stable?
+      if (isSubtreeStable == false) // If my subtree isn't stable yet,
+        this.takePosition (); // keep adjusting my position to my equilibrium
     }
 
     // Do the same for every other children: seek stability recursively
     for (var i = 0; i < this.children.length; ++i) {
-      stabilityReached = this.children[i].subtreeSeekEquilibrium() && stabilityReached;
+      isSubtreeStable = this.children[i].subtreeSeekEquilibrium() && isSubtreeStable;
     }
-    return stabilityReached;
+    return isSubtreeStable;
   }
 
   // This function will call itself repeatedly until all children nodes have
@@ -211,25 +224,21 @@
   Node.prototype.animationLoop = function () {
 
 
-
-    if (this.subtreeSeekEquilibrium ()) {
+    if (this.subtreeSeekEquilibrium() === true) { // Is our subtree stable?
       return; // Avoid the callback and just return if our subtree got equilibrium
     }
 
 
-
-
-
-
-
     var thisNode = this;
-    setTimeout(function () {
+    setTimeout(function () { // Start animation again if subtree isn't stable
       thisNode.animationLoop();
     }, 10);
   }
 
-  // Using Coulomb's Law, calculate a repulsion force from another node
-  Node.prototype.calculateSingleRepulsionForceFromNode = function (otherNode) {
+  // Using Coulomb's Law, calculate a repulsion force from another node. If
+  // provided, the dampFactor damps this force by its amount
+  Node.prototype.calculateSingleRepulsionForceFromNode = function (otherNode,
+                                                                   dampFactor) {
     var x, y, f, distance, theta, xsign, dx = 0, dy = 0;
     // Calculate x and y distance components between the nodes
     x = (otherNode.x - this.x);
@@ -248,7 +257,8 @@
                                   // function graph
       }
       // Calculate force for the given distance and apply its components
-      f = NODES_REPULSIVE_FACTOR / (distance * distance);
+      dampFactor = dampFactor || 1; // If provided, a dampFactor will dump this force
+      f = NODES_REPULSIVE_FACTOR / (distance * distance * (dampFactor * dampFactor));
       dx = -f * Math.cos (theta) * xsign;
       dy = -f * Math.sin (theta) * xsign;
     }
@@ -257,7 +267,8 @@
   }
 
   // Using Hooke's Law, calculate an attractive force towards another node
-  Node.prototype.calculateSingleAttractiveForceTowardsNode = function (otherNode) {
+  Node.prototype.calculateSingleAttractiveForceTowardsNode = function (otherNode,
+                                                                       dampFactor) {
     var x, y, f, distance, theta, xsign, dx = 0, dy = 0;
     // Calculate x and y distance components between the nodes
     x = (otherNode.x - this.x);
@@ -273,6 +284,7 @@
         xsign = x / Math.abs (x);
       }
       // Calculate Hooke's force and apply its components
+      dampFactor = dampFactor || 1; // If provided, a dampFactor will dump this force
       f = (15 * distance * 0.01) / LINES_RESTORING_FACTOR;
       dx = f * Math.cos (theta) * xsign;
       dy = f * Math.sin (theta) * xsign;
@@ -306,7 +318,8 @@
         fy += f.dy;
       }
       // And also the repulsive force from my parent node
-      f = this.calculateSingleRepulsionForceFromNode (this.$parent.node);
+      f = this.calculateSingleRepulsionForceFromNode (this.$parent.node,
+        this.depthLevel / (this.children.length * 0.5));
       fx += f.dx;
       fy += f.dy;
     }
@@ -403,15 +416,32 @@
   // Create the nodes of the map recursively
   $.fn.createNodes = function () { // Typical scope: $('body') object
     var $map = this; // Save 'this' (the map selector) for any closure
-    var $rootli = $('>ul>li', this);
+    var $rootLi = $('>ul>li', this);
+    if ($rootLi.length === 0) { // A root node must exist
+      $.error ("No root node <li> item found - one is needed");
+      return;
+    }
+    $rootLi = $rootLi.get(0);
     // Create the root node
-    var $rootNode = $('>a', $rootli).addNode ($map, null);
-    // Foreach sub-anchor item of the root li item -> add a node
-    $('>ul>li>a', $rootli).each (function() {
-      $(this).addNode ($map, $rootNode);
-    });
+    var $rootNode = $('>a', $rootLi).addNode ($map, null, 0 /* Root has 0 depth */);
+
+
+    // Now create all the other nodes recursively
+    addNodesRecursively ($map, $rootLi, $rootNode, 1);
   }
 
+  // - internal use - Adds the nodes recursively to the map given:
+  //  - the map object
+  //  - the page parent li element
+  //  - the parent node <a> element
+  function addNodesRecursively ($map, $parentLiElement, $parentNode, depthLevel) {
+
+    // If there's a ul list, foreach li item
+    $('>ul>li', $parentLiElement).each ( function () {
+      var $newNodeElement = $('>a', this).addNode ($map, $parentNode, depthLevel);
+      addNodesRecursively ($map, this, $newNodeElement, depthLevel + 1);
+    });
+  }
 
 /*
   $.fn.addRootNode = function () {
@@ -424,26 +454,31 @@
   */
 
 
-  $.fn.addNode = function ($map, $parent) { // Typical scope: $('a') object
+  $.fn.addNode = function ($map, $parent, depthLevel) { // Typical scope: $('a') object
     this.node = new Node ($map,      // map to add <a>s, typically $('body')
                           $parent,         // parent <a> selector
                           this.text(),        // nodeName
-                          this.attr('href'));     // href
+                          this.attr('href'),     // href
+                          depthLevel);              // depth level of child
     $map.nodes[$map.nodes.length] = this.node; // Keep a list of all the nodes
                                                // for some distance calculations
     // Everytime a node is added its parent's subtree needs to be reshaped
     if ($parent != null) {
       // Every other sibling of this node will have to be re-positioned around
-      // the parent for the first time the children are laid out
-      $.each ($parent.node.children, function () {
-        this.hasPosition = false;
-      });
-      $parent.node.animateToStaticPosition (); // This node will drag its children
+      // the parent for the first time the children are laid out. Also their
+      // children will have to (this is recursive)
+      var setNeedsPositionRecursively = function (childrenNodes) {
+        $.each (childrenNodes, function () {
+          this.hasPosition = false;
+          setNeedsPositionRecursively (this.children);
+        });
+      };
+      setNeedsPositionRecursively ($parent.node.children);
+      $parent.node.animateToStaticPosition (); // Start animate the parent's subtree
     } else
       $map.selectedNode = this.node; // TODO: implement a selection mechanism, for now
                                      // the root is the selected element
-
-    return this;
+    return this.node.$element;
   }
 
 } (jQuery));
