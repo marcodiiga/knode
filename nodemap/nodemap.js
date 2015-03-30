@@ -156,31 +156,10 @@
     this.takePosition (); // Immediately place this node
   }
 
-  // Sets the wheels in motion for all the children of a specific node in order
-  // for them to reach a final static equilibrium position
-  //
-  // This function has two goals:
-  //  1) Calculate the initial equilibrium position for each node of the graph
-  //     (children are as close to their parents as specified by the variable
-  //     CHILD_PARENT_INIT_DISTANCE)
-  //  2) Start an animation loop which computes force vectors per each node and
-  //     apply them to simulate movement
+  // Start an animation loop which recursively computes this node and its
+  // children (and subchildren, recursively) positions
   Node.prototype.animateToStaticPosition = function() {
-    // Position of this local root node will be recalculated, stop moving
-
-
-    // clearTimeout (this.animationLoop);
-
-    // Recalculate my children's equilibrium points. Each child will have
-    // the final coordinates in (x;y) and (adjustedX, adjustedY)
-    //$.each (this.children, function (index) {
-    //  this.calculateEquilibriumPoint (index);
-    //  this.position ();
-    //});
-
-
     this.animationLoop (); // Start the animation loop
-
   }
 
   // Returns 'true' if the entire subtree (i.e. me and my child nodes)
@@ -216,6 +195,7 @@
     for (var i = 0; i < this.children.length; ++i) {
       isSubtreeStable = this.children[i].subtreeSeekEquilibrium() && isSubtreeStable;
     }
+
     return isSubtreeStable;
   }
 
@@ -223,11 +203,26 @@
   // reached an equilibrium position
   Node.prototype.animationLoop = function () {
 
+    this.$map.canvas.clear(); // Regardless of whether a node has moved or not,
+                              // it is computationally less expensive and easier
+                              // to just update the entire canvas for lines
+    $.each (this.$map.lines, function () { // Redraw all the lines
+      this.draw ();
+    });
 
     if (this.subtreeSeekEquilibrium() === true) { // Is our subtree stable?
+
+      if (this.$parent === null) { // When the root has reached stability,
+                                   // the entire tree is stable. This is the
+                                   // perfect time to nicely render the connectors
+                                   // at full black opacity gradually
+        $.each (this.$map.lines, function () {
+          this.path.animate({'opacity': 1.0}, 1000);
+        });
+      }
+
       return; // Avoid the callback and just return if our subtree got equilibrium
     }
-
 
     var thisNode = this;
     setTimeout(function () { // Start animation again if subtree isn't stable
@@ -368,6 +363,19 @@
     this.$map = $map;
     this.startNode = startNode;
     this.endNode = endNode;
+    this.path = null; // Could be useful to individually manipulate a connector
+  }
+
+  // Draw a connector between two nodes
+  Line.prototype.draw = function () {
+    this.path = this.$map.canvas.path ("M" + this.startNode.x + ' ' +
+      this.startNode.y + "L" + this.endNode.x + ' ' + this.endNode.y).attr(
+          {
+           'stroke': 'black',
+           'opacity': 0.2,
+           'stroke-width': 3,
+           'stroke-linecap': 'round'
+          });
   }
 
   // ---------- Map class and methods ----------
@@ -442,17 +450,6 @@
       addNodesRecursively ($map, this, $newNodeElement, depthLevel + 1);
     });
   }
-
-/*
-  $.fn.addRootNode = function () {
-    var node = new Node (null,                // No parent (root)
-                         this.text(),         // nodeName
-                         this.attr('href'));  // href
-    this.node = node;
-    return this;
-  };
-  */
-
 
   $.fn.addNode = function ($map, $parent, depthLevel) { // Typical scope: $('a') object
     this.node = new Node ($map,      // map to add <a>s, typically $('body')
