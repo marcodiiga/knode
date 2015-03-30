@@ -54,7 +54,13 @@
     var thisNode = this;
     this.$element.draggable ({ // Set a jQuery callback function when dragging
       drag: function () {
-        thisNode.animateToStaticPosition ();
+
+        // When a node is being dragged, all its children and siblings are also
+        // unstable because its position will modify their position as well
+        if (thisNode.$parent == null) // Animate my subtree only if I'm the root
+          thisNode.animateToStaticPosition ();
+        else // If I'm not the root, animate my parent's subtree (where I belong)
+          thisNode.$parent.node.animateToStaticPosition ();
       }
     });
 
@@ -239,7 +245,7 @@
         xsign = x / Math.abs (x);
       }
       // Calculate Hooke's force and apply its components
-      f = (15 * distance * 0.03) / LINES_RESTORING_FACTOR;
+      f = (15 * distance * 0.01) / LINES_RESTORING_FACTOR;
       dx = f * Math.cos (theta) * xsign;
       dy = f * Math.sin (theta) * xsign;
     }
