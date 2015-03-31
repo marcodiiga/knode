@@ -21,6 +21,10 @@
 
 .nodemap { /* The nodemap itself */
   border: 1px solid black;
-  /*transform: scale(0.7);  /* This might need to be adjusted */
-  /* transform-origin: 10% 10%; /* This might need to be adjusted */
+  /* Elements in this map are positioned as 'absolute', but everything is
+     relative to this map area */
+  position: relative;
+  display: block;
+  /*transform: scale(0.5);  /* This might need to be adjusted */
+/*  transform-origin: 10% 10%; /* This might need to be adjusted */
 }

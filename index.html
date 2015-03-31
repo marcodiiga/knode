@@ -17,7 +17,7 @@
 
       // TODO: render this as $('body').createNodeMap().createNodes();
 
-      $('#map').createNodeMap().createNodes();
+      $('#map').createNodeMap().createNodes($('#ulList'));
 
       // Add the root node with his text (only one root node can exist)
       // var $rootNode = $nodeMap.addRootNode( $('body>ul>li>a').text() );
@@ -28,7 +28,7 @@
 
 </head>
 <body>
-  <div id="map">
+  <div id="ulList">
     <!-- TODO: generate this list dynamically -->
     <ul>
       <li><a href="root node">Root node</a>
@@ -59,6 +59,11 @@
         </ul>
       </li>
     </ul>
+
+  </div>
+  <div id="wrapper" style="border: 1px solid red;">
+    <div id="map">
+    </div>
   </div>
 </body>
 </html>

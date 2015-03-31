@@ -181,6 +181,21 @@
   Node.prototype.subtreeSeekEquilibrium = function () {
     var isSubtreeStable = true; // Assume my subtree has reached stability
 
+    // I'm included in the search for equilibrium, thus if I'm not positioned,
+    // position me at the center of the map if I'm the root
+    // TODO: implement selection mechanism
+    if (this.hasPosition === false) {
+      if (this.$parent === null) {
+        this.x = (this.$map.options.mapArea.width / 2);
+        this.y = (this.$map.options.mapArea.height / 2);
+        this.hasPosition = true;
+      }
+      isSubtreeStable = false; // Obviously this means my subtree isn't stable
+      $.each (this.children, function (index) { // and nor are my children
+        this.hasPosition = false;
+      });
+    }
+
     // If my children haven't been positioned yet, lay them around me
     $.each (this.children, function (index) {
         if (this.hasPosition == false) {
@@ -278,7 +293,7 @@
 
   // Using Hooke's Law, calculate an attractive force towards another node
   Node.prototype.calculateSingleAttractiveForceTowardsNode = function (otherNode,
-                                                                       dampFactor) {
+                                                                       ampFactor) {
     var x, y, f, distance, theta, xsign, dx = 0, dy = 0;
     // Calculate x and y distance components between the nodes
     x = (otherNode.x - this.x);
@@ -294,8 +309,8 @@
         xsign = x / Math.abs (x);
       }
       // Calculate Hooke's force and apply its components
-      dampFactor = dampFactor || 1; // If provided, a dampFactor will damp this force
-      f = (15 * distance * 0.01 * dampFactor) / LINES_RESTORING_FACTOR;
+      ampFactor = ampFactor || 1; // If provided, a ampFactor will amplify this force
+      f = (15 * distance * 0.01 * ampFactor) / LINES_RESTORING_FACTOR;
       dx = f * Math.cos (theta) * xsign;
       dy = f * Math.sin (theta) * xsign;
     }
@@ -364,7 +379,7 @@
         x: (this.$map.options.mapArea.width / 2),
         y: (this.$map.options.mapArea.height / 2),
         centerOfTheMap: true
-      });
+      }, 10); // An amplify factor is provided to get the graph towards the center
       fx += f.dx;
       fy += f.dy;
     }
@@ -415,9 +430,9 @@
 
     // Set up a drawing area
     if (options.mapArea.width === initialSize)
-      options.mapArea.width = this[0].offsetWidth;
+      options.mapArea.width = this.width();
     if (options.mapArea.height === initialSize)
-      options.mapArea.height = this[0].offsetHeight;
+      options.mapArea.height = this.height();
 
     this.options = options; // Save it for the $map
     this.nodes = []; // A list of all the nodes of the map (necessary later)
@@ -427,7 +442,7 @@
 
     // Add a canvas to the DOM element associated with this selector
     var canvas = Raphael (this[0], 0, 0, options.mapArea.width,
-                                             options.mapArea.height);
+                                         options.mapArea.height);
     this.canvas = canvas; // Also save it as a property
 
     // Add a class to the map DOM object to let node styles be applied
@@ -436,23 +451,27 @@
     // If the map's element gets resized, every coordinate calculation gets
     // spoiled, we need to prevent this by having a resize callback
     var $thisMap = this;
-    this.attrchange({
-        callback: function (e) {
-            console.log("logged");
-        }
-    }).resizable();
+    this.resize( function () {
+      // Update map area width and height
+      $thisMap.options.mapArea.width = $thisMap.width();
+      $thisMap.options.mapArea.height = $thisMap.height();
 
+      // Update the svg canvas (for connectors)
+      $thisMap.canvas.setSize ($thisMap.options.mapArea.width,
+                               $thisMap.options.mapArea.height);
 
-    //  $thisMap.rootNode.isStable = false;
-    //  $thisMap.rootNode.animateToStaticPosition ();
+      $thisMap.rootNode.isStable = false;   // Destroy root node's stability
+      $thisMap.rootNode.hasPosition = false; // and position, this causes the
+      $thisMap.rootNode.animateToStaticPosition (); // entire subtree to move
+    });
 
     return this;
   }
 
   // Create the nodes of the map recursively
-  $.fn.createNodes = function () { // Typical scope: $('body') object
+  $.fn.createNodes = function (elementsList) { // Typical scope: $('body') object
     var $map = this; // Save 'this' (the map selector) for any closure
-    var $rootLi = $('>ul>li', this);
+    var $rootLi = $('>ul>li', elementsList);
     if ($rootLi.length === 0) { // A root node must exist
       $.error ("No root node <li> item found - one is needed");
       return;
@@ -462,7 +481,9 @@
     var $rootNode = $('>a', $rootLi).addNode ($map, null, 0 /* Root has 0 depth */);
 
     // Now create all the other nodes recursively
-    addNodesRecursively ($map, $rootLi, $rootNode, 1);
+    addNodesRecursively ($map, $rootLi, $rootNode, 1 /* Depth level from 1 on */);
+
+    $map.resize();
   }
 
   // - internal use - Adds the nodes recursively to the map given:
@@ -502,6 +523,7 @@
     } else
       $map.selectedNode = this.node; // TODO: implement a selection mechanism, for now
                                      // the root is the selected element
+
     return this.node.$element;
   }
 
