@@ -30,7 +30,7 @@
   'use strict';
 
   var MOVEMENT_TIMEOUT = 4; // 4 seconds for the nodes' movement timeout
-  var CHILD_PARENT_INIT_DISTANCE = 30; // Starting child<->parent distance
+  var CHILD_PARENT_INIT_DISTANCE = 50; // Starting child<->parent distance
   var NODES_REPULSIVE_FACTOR = 460;
   var LINES_RESTORING_FACTOR = 8000;
 
@@ -169,7 +169,9 @@
                                           // sure the previous timer isn't running
     this.stopSubtreeMoving = false; // Reset the timeout flag
     this.stabilityTimeout = setTimeout(function () {
-      thisNode.stopSubtreeMoving = true;
+      thisNode.$map.rootNode.stopSubtreeMoving = true; // Stop the entire tree
+      thisNode.$map.rootNode.animateToStaticPosition (); // Make sure connectors
+                                                         // are fully black
       console.log ("MOVEMENT STOPPED TIMEOUT");
     }, MOVEMENT_TIMEOUT * 1000);
 
@@ -232,12 +234,14 @@
   // reached an equilibrium position
   Node.prototype.animationLoop = function () {
 
-    this.$map.canvas.clear(); // Regardless of whether a node has moved or not,
-                              // it is computationally less expensive and easier
-                              // to just update the entire canvas for lines
-    $.each (this.$map.lines, function () { // Redraw all the lines
-      this.draw ();
-    });
+    if (this.$map.linesCanBeShowed === true) { // For graphical reasons
+      this.$map.canvas.clear(); // Regardless of whether a node has moved or not,
+                                // it is computationally less expensive and easier
+                                // to just update the entire canvas for lines
+      $.each (this.$map.lines, function () { // Redraw all the lines
+        this.draw ();
+      });
+    }
 
     if (this.subtreeSeekEquilibrium() === true || // Is our subtree stable?
         this.stopSubtreeMoving == true) {  // Or perhaps I timeouted?
@@ -252,6 +256,32 @@
       }
 
       return; // Avoid the callback and just return if our subtree got equilibrium
+    }
+
+    // Since something has moved (no stability yet), calculate the bounding box
+    // containing all our children (they might be outside the container)
+    var boundingBox = { x: this.$map.options.mapArea.width,
+                        y: this.$map.options.mapArea.height};
+    var Xgap = 0, Ygap = 0;
+    $.each (this.$map.nodes, function () {
+
+      if (this.x - this.elementWidth / 2< 0 && Math.abs(this.x) > Xgap)
+        Xgap = Math.abs(this.x);
+      else if (this.x + this.elementWidth / 2 > boundingBox.x && Math.abs(this.x) > Xgap)
+        Xgap = Math.abs(this.x);
+      if (this.y - this.elementHeight / 2 < 0 && Math.abs(this.y) > Ygap)
+        Ygap = Math.abs(this.y);
+      else if (this.y + this.elementHeight / 2 > boundingBox.y && Math.abs(this.y) > Ygap)
+        Ygap = Math.abs(this.y);
+    });
+    if (Xgap !== 0 || Ygap !== 0) {
+      this.$map.options.mapArea.width += Xgap;
+      this.$map.options.mapArea.height += Ygap;
+
+      // Apply, if necessary, the bounding box to the canvas (that might also
+      // cause the container to be resized)
+      this.$map.canvas.setSize (this.$map.options.mapArea.width,
+                                this.$map.options.mapArea.height);
     }
 
     var thisNode = this;
@@ -439,6 +469,7 @@
     this.lines = []; // A list of all the connections in the map
     this.selectedNode = null; // The centered, selected node
     this.rootNode = null; // Root node of the map (not the selected one)
+    this.linesCanBeShowed = false; // For graphical reasons, avoids artifacts
 
     // Add a canvas to the DOM element associated with this selector
     var canvas = Raphael (this[0], 0, 0, options.mapArea.width,
@@ -483,7 +514,12 @@
     // Now create all the other nodes recursively
     addNodesRecursively ($map, $rootLi, $rootNode, 1 /* Depth level from 1 on */);
 
-    $map.resize();
+    $map.resize(); // Resize the map AFTER all the nodes have been created. This
+                   // gives us the possiblity of calculating if nodes need
+                   // additional space in the map's area
+    $map.linesCanBeShowed = true; // Due to a graphic effect during nodes moving,
+                                  // it is nicer to just show the connectors when
+                                  // nodes have been positioned for the first time
   }
 
   // - internal use - Adds the nodes recursively to the map given:
