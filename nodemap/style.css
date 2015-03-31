@@ -19,7 +19,8 @@
   text-align: center;
 }
 
-/*.nodemap { /* The nodemap itself */
-/*   transform: scale(0.9); /* This might need to be adjusted */
-/*   transform-origin: 10% 10%;
-/*}/*
+.nodemap { /* The nodemap itself */
+  border: 1px solid black;
+  /*transform: scale(0.7);  /* This might need to be adjusted */
+  /* transform-origin: 10% 10%; /* This might need to be adjusted */
+}

@@ -415,23 +415,36 @@
 
     // Set up a drawing area
     if (options.mapArea.width === initialSize)
-      options.mapArea.width = $(window).width();
+      options.mapArea.width = this[0].offsetWidth;
     if (options.mapArea.height === initialSize)
-      options.mapArea.height = $(window).height();
+      options.mapArea.height = this[0].offsetHeight;
 
     this.options = options; // Save it for the $map
     this.nodes = []; // A list of all the nodes of the map (necessary later)
     this.lines = []; // A list of all the connections in the map
     this.selectedNode = null; // The centered, selected node
+    this.rootNode = null; // Root node of the map (not the selected one)
 
-    // Add a canvas to the selector of this element and save it as a property
-    var canvas = Raphael (0, 0, options.mapArea.width,
-                                options.mapArea.height);
-    this.append (canvas);
-    this.canvas = canvas;
+    // Add a canvas to the DOM element associated with this selector
+    var canvas = Raphael (this[0], 0, 0, options.mapArea.width,
+                                             options.mapArea.height);
+    this.canvas = canvas; // Also save it as a property
 
     // Add a class to the map DOM object to let node styles be applied
     this.addClass ('nodemap');
+
+    // If the map's element gets resized, every coordinate calculation gets
+    // spoiled, we need to prevent this by having a resize callback
+    var $thisMap = this;
+    this.attrchange({
+        callback: function (e) {
+            console.log("logged");
+        }
+    }).resizable();
+
+
+    //  $thisMap.rootNode.isStable = false;
+    //  $thisMap.rootNode.animateToStaticPosition ();
 
     return this;
   }
@@ -447,7 +460,6 @@
     $rootLi = $rootLi.get(0);
     // Create the root node
     var $rootNode = $('>a', $rootLi).addNode ($map, null, 0 /* Root has 0 depth */);
-
 
     // Now create all the other nodes recursively
     addNodesRecursively ($map, $rootLi, $rootNode, 1);

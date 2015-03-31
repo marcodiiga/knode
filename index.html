@@ -17,7 +17,7 @@
 
       // TODO: render this as $('body').createNodeMap().createNodes();
 
-      $('body').createNodeMap().createNodes();
+      $('#map').createNodeMap().createNodes();
 
       // Add the root node with his text (only one root node can exist)
       // var $rootNode = $nodeMap.addRootNode( $('body>ul>li>a').text() );
@@ -28,37 +28,37 @@
 
 </head>
 <body>
-  <!-- TODO: generate this list dynamically -->
-  <ul>
-    <li><a href="root node">Root node</a>
-      <ul>
-        <li><a href="subnode 1">Subnode 1</a></li>
-        <li><a href="subnode 2">Subnode 2 (also a list)</a>
-          <ul>
-            <li><a href="subnode 2-1">Sub Subnode 2-1</a></li>
-            <li><a href="subnode 2-2">Sub Subnode 2-2</a></li>
-            <li><a href="subnode 2-3">Sub Subnode 2-3</a></li>
-          </ul>
-        </li>
-        <li><a href="subnode 3">Subnode 3</a>
-          <ul>
-            <li><a href="subnode 2-1">Sub Subnode 3-1</a></li>
-            <li><a href="subnode 2-2">Sub Subnode 3-2</a></li>
-            <li><a href="subnode 2-2">Sub Subnode 3-3</a></li>
-            <li><a href="subnode 2-42">Sub Subnode 3-4</a></li>
-          </ul>
-        </li>
-        <li><a href="subnode 4">Subnode 4</a>
-          <ul>
-            <li><a href="subnode 2-1">Sub Subnode 4-1</a></li>
-            <li><a href="subnode 2-2">Sub Subnode 4-2</a></li>
-            <li><a href="subnode 2-3">Sub Subnode 2-3</a></li>
-          </ul>
-        </li>
-      </ul>
-    </li>
-  </ul>
   <div id="map">
+    <!-- TODO: generate this list dynamically -->
+    <ul>
+      <li><a href="root node">Root node</a>
+        <ul>
+          <li><a href="subnode 1">Subnode 1</a></li>
+          <li><a href="subnode 2">Subnode 2 (also a list)</a>
+            <ul>
+              <li><a href="subnode 2-1">Sub Subnode 2-1</a></li>
+              <li><a href="subnode 2-2">Sub Subnode 2-2</a></li>
+              <li><a href="subnode 2-3">Sub Subnode 2-3</a></li>
+            </ul>
+          </li>
+          <li><a href="subnode 3">Subnode 3</a>
+            <ul>
+              <li><a href="subnode 2-1">Sub Subnode 3-1</a></li>
+              <li><a href="subnode 2-2">Sub Subnode 3-2</a></li>
+              <li><a href="subnode 2-2">Sub Subnode 3-3</a></li>
+              <li><a href="subnode 2-42">Sub Subnode 3-4</a></li>
+            </ul>
+          </li>
+          <li><a href="subnode 4">Subnode 4</a>
+            <ul>
+              <li><a href="subnode 2-1">Sub Subnode 4-1</a></li>
+              <li><a href="subnode 2-2">Sub Subnode 4-2</a></li>
+              <li><a href="subnode 2-3">Sub Subnode 2-3</a></li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+    </ul>
   </div>
 </body>
 </html>
