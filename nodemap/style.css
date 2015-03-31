@@ -19,16 +19,7 @@
   text-align: center;
 }
 
-.path {
-  stroke-dashoffset: 822;
-  animation: dash 5s linear alternate infinite;
-}
-
-@keyframes dash {
-  from {
-     stroke-dashoffset: 822;
-   }
-   to {
-     stroke-dashoffset: 0;
-   }
-}
+/*.nodemap { /* The nodemap itself */
+/*   transform: scale(0.9); /* This might need to be adjusted */
+/*   transform-origin: 10% 10%;
+/*}/*

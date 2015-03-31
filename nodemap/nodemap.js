@@ -50,6 +50,8 @@
     this.depthLevel   = depthLevel; // The depth level of this node (used when
                                     // adjusting forces to render deep children
                                     // closer to their parents)
+    this.stabilityTimeout = 0;      // A timeout for the subtree stability search
+    this.stopSubtreeMoving = false; // The variable that controls the timeout
 
     // Create the node element in the page and append it to the map's object
     this.$element = $('<a href="' + this.href + '"><p>' + this.name + '</p></a>')
@@ -159,6 +161,18 @@
   // Start an animation loop which recursively computes this node and its
   // children (and subchildren, recursively) positions
   Node.prototype.animateToStaticPosition = function() {
+
+    // Set a timeout to prevent the animation for this node (and its children)
+    // to last indefinitely due to threshold errors
+    var thisNode = this; // For the closure
+    clearTimeout (this.stabilityTimeout); // If I received a second command, make
+                                          // sure the previous timer isn't running
+    this.stopSubtreeMoving = false; // Reset the timeout flag
+    this.stabilityTimeout = setTimeout(function () {
+      thisNode.stopSubtreeMoving = true;
+      console.log ("MOVEMENT STOPPED TIMEOUT");
+    }, MOVEMENT_TIMEOUT * 1000);
+
     this.animationLoop (); // Start the animation loop
   }
 
@@ -210,7 +224,8 @@
       this.draw ();
     });
 
-    if (this.subtreeSeekEquilibrium() === true) { // Is our subtree stable?
+    if (this.subtreeSeekEquilibrium() === true || // Is our subtree stable?
+        this.stopSubtreeMoving == true) {  // Or perhaps I timeouted?
 
       if (this.$parent === null) { // When the root has reached stability,
                                    // the entire tree is stable. This is the
@@ -337,7 +352,7 @@
       // TODO: ignore hidden nodes' pulling (visible)
 
       f = this.calculateSingleAttractiveForceTowardsNode (otherEnd,
-        Math.pow(this.depthLevel, 3)); // Powerful damping if we're deeply nested
+        Math.pow(this.depthLevel, 4)); // Powerful damping if we're deeply nested
       fx += f.dx;
       fy += f.dy;
     }
