@@ -89,7 +89,23 @@
 
     var thisNode = this;
     this.$element.draggable ({ // Set a jQuery callback function when dragging
-      drag: function () {
+      handle: '.drag-handle',
+      start: function(event, ui) {
+          ui.position.left = 0;
+          ui.position.top = 0;
+      },
+      drag: function (event, ui) {
+
+        thisNode.$map.dragActiveOnMap = true;
+
+        var changeLeft = ui.position.left - ui.originalPosition.left; // find change in left
+        var newLeft = ui.originalPosition.left + changeLeft / (( 0.5)); // adjust new left by our zoomScale
+
+        var changeTop = ui.position.top - ui.originalPosition.top; // find change in top
+        var newTop = ui.originalPosition.top + changeTop / 0.5; // adjust new top by our zoomScale
+
+        ui.position.left = newLeft;
+        ui.position.top = newTop;
 
         // When a node is being dragged, all its children and siblings are also
         // unstable because its position will modify their position as well
@@ -234,7 +250,10 @@
   // reached an equilibrium position
   Node.prototype.animationLoop = function () {
 
-    if (this.$map.linesCanBeShowed === true) { // For graphical reasons
+    // For graphical reasons lines shouldn't be shown when the map is being
+    // resized and nodes are scattered in their "hasPosition" radial madness.
+    // 'linesCanBeShown' is set to true when lines can be drawn nicely
+    if (this.$map.linesCanBeShown === true) {
       this.$map.canvas.clear(); // Regardless of whether a node has moved or not,
                                 // it is computationally less expensive and easier
                                 // to just update the entire canvas for lines
@@ -243,8 +262,20 @@
       });
     }
 
-    if (this.subtreeSeekEquilibrium() === true || // Is our subtree stable?
-        this.stopSubtreeMoving == true) {  // Or perhaps I timeouted?
+    // (*) This code is needed to avoid a nasty problem: when nodes are dragged
+    // the bounding box calculation SHOULDN'T take place. Otherwise bad things
+    // can happen. When is it safe to calculate bounding boxes again?
+    // When everything is stable: i.e. when the root node reached stability.
+    var isMySubtreeStable = this.subtreeSeekEquilibrium();
+    if ( isMySubtreeStable === true && this.$parent === null &&
+         this.$map.dragActiveOnMap === true) {
+      this.$map.dragActiveOnMap = false;
+    }
+
+    // The core of this routine: stops the recursion if my subtree is stable
+    // or if this node timeouted
+    if ( isMySubtreeStable === true ||      // Is our subtree stable?
+         this.stopSubtreeMoving == true) {  // Or perhaps I timeouted?
 
       if (this.$parent === null) { // When the root has reached stability,
                                    // the entire tree is stable. This is the
@@ -258,30 +289,32 @@
       return; // Avoid the callback and just return if our subtree got equilibrium
     }
 
-    // Since something has moved (no stability yet), calculate the bounding box
-    // containing all our children (they might be outside the container)
-    var boundingBox = { x: this.$map.options.mapArea.width,
-                        y: this.$map.options.mapArea.height};
-    var Xgap = 0, Ygap = 0;
-    $.each (this.$map.nodes, function () {
+    if (this.$map.dragActiveOnMap === false) { // See comments above (*)
+      // Since something has moved (no stability yet), calculate the bounding box
+      // containing all our children (they might be outside the container)
+      var boundingBox = { x: this.$map.options.mapArea.width,
+                          y: this.$map.options.mapArea.height};
+      var Xgap = 0, Ygap = 0;
+      $.each (this.$map.nodes, function () {
 
-      if (this.x - this.elementWidth / 2< 0 && Math.abs(this.x) > Xgap)
-        Xgap = Math.abs(this.x);
-      else if (this.x + this.elementWidth / 2 > boundingBox.x && Math.abs(this.x) > Xgap)
-        Xgap = Math.abs(this.x);
-      if (this.y - this.elementHeight / 2 < 0 && Math.abs(this.y) > Ygap)
-        Ygap = Math.abs(this.y);
-      else if (this.y + this.elementHeight / 2 > boundingBox.y && Math.abs(this.y) > Ygap)
-        Ygap = Math.abs(this.y);
-    });
-    if (Xgap !== 0 || Ygap !== 0) {
-      this.$map.options.mapArea.width += Xgap;
-      this.$map.options.mapArea.height += Ygap;
+        if (this.x - this.elementWidth / 2< 0 && Math.abs(this.x) > Xgap)
+          Xgap = Math.abs(this.x);
+        else if (this.x + this.elementWidth / 2 > boundingBox.x && Math.abs(this.x) > Xgap)
+          Xgap = Math.abs(this.x);
+        if (this.y - this.elementHeight / 2 < 0 && Math.abs(this.y) > Ygap)
+          Ygap = Math.abs(this.y);
+        else if (this.y + this.elementHeight / 2 > boundingBox.y && Math.abs(this.y) > Ygap)
+          Ygap = Math.abs(this.y);
+      });
+      if (Xgap !== 0 || Ygap !== 0) {
+        this.$map.options.mapArea.width += Xgap;
+        this.$map.options.mapArea.height += Ygap;
 
-      // Apply, if necessary, the bounding box to the canvas (that might also
-      // cause the container to be resized)
-      this.$map.canvas.setSize (this.$map.options.mapArea.width,
-                                this.$map.options.mapArea.height);
+        // Apply, if necessary, the bounding box to the canvas (that might also
+        // cause the container to be resized)
+        this.$map.canvas.setSize (this.$map.options.mapArea.width,
+                                  this.$map.options.mapArea.height);
+      }
     }
 
     var thisNode = this;
@@ -469,7 +502,8 @@
     this.lines = []; // A list of all the connections in the map
     this.selectedNode = null; // The centered, selected node
     this.rootNode = null; // Root node of the map (not the selected one)
-    this.linesCanBeShowed = false; // For graphical reasons, avoids artifacts
+    this.linesCanBeShown = false; // For graphical reasons, avoids artifacts
+    this.dragActiveOnMap = false;  // No resizing the containers if drag is active
 
     // Add a canvas to the DOM element associated with this selector
     var canvas = Raphael (this[0], 0, 0, options.mapArea.width,
@@ -517,7 +551,7 @@
     $map.resize(); // Resize the map AFTER all the nodes have been created. This
                    // gives us the possiblity of calculating if nodes need
                    // additional space in the map's area
-    $map.linesCanBeShowed = true; // Due to a graphic effect during nodes moving,
+    $map.linesCanBeShown = true; // Due to a graphic effect during nodes moving,
                                   // it is nicer to just show the connectors when
                                   // nodes have been positioned for the first time
   }
