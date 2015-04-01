@@ -15,14 +15,8 @@
   <script>
     $(document).ready(function() {
 
-      // TODO: render this as $('body').createNodeMap().createNodes();
+      $('#map').createNodeMap().createNodes($('#ulList')).setScale(0.5);
 
-      $('#map').createNodeMap().createNodes($('#ulList'));
-
-      // Add the root node with his text (only one root node can exist)
-      // var $rootNode = $nodeMap.addRootNode( $('body>ul>li>a').text() );
-
-      // TODO? hide the html ul list
     });
   </script>
 
@@ -61,7 +55,11 @@
     </ul>
 
   </div>
-  <div id="wrapper" style="border: 1px solid red;">
+  <!-- For example purposes: set a transform scale to the map's container (this
+       also needs the 'setScale()' function to be called on the map to get node
+       dragging working properly -->
+  <div id="wrapper" style="transform-origin: 0% 0%; transform: scale(0.5); border: 2px solid black;
+  overflow: hidden; height: 1200px; width:1200px;">
     <div id="map">
     </div>
   </div>

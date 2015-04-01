@@ -12,7 +12,7 @@
 	-webkit-border-radius: 50px;
 	border-radius: 50px;
 }
-.nodemap a.node>p {
+.nodemap a.node>p { /* Visualize text paragraphs centered in the nodes */
   color: white;
   display: table-cell;
   vertical-align: middle;
@@ -20,11 +20,10 @@
 }
 
 .nodemap { /* The nodemap itself */
-  border: 1px solid black;
   /* Elements in this map are positioned as 'absolute', but everything is
      relative to this map area */
   position: relative;
   display: block;
-  transform: scale(1.0);  /* This might need to be adjusted */
-/*  transform-origin: 10% 10%; /* This might need to be adjusted */
+  height: 100%;
+  overflow: visible;
 }

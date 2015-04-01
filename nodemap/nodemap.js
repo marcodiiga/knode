@@ -96,14 +96,16 @@
       },
       drag: function (event, ui) {
 
-        thisNode.$map.dragActiveOnMap = true;
-
-        var changeLeft = ui.position.left - ui.originalPosition.left; // find change in left
-        var newLeft = ui.originalPosition.left + changeLeft / (( 1.0)); // adjust new left by our zoomScale
-
-        var changeTop = ui.position.top - ui.originalPosition.top; // find change in top
-        var newTop = ui.originalPosition.top + changeTop / 1.0; // adjust new top by our zoomScale
-
+        // This code is necessary to have the node dragging working if any
+        // container that contains this map has been scaled - see (*)
+        var leftChange = ui.position.left - ui.originalPosition.left;
+        var topChange = ui.position.top - ui.originalPosition.top;
+        // Scale the changes by the 'scale' factor
+        var newLeft = ui.originalPosition.left
+          + leftChange / thisNode.$map.options.scale;
+        var newTop = ui.originalPosition.top
+          + topChange / thisNode.$map.options.scale;
+        // Apply the scaled changes (these are correct)
         ui.position.left = newLeft;
         ui.position.top = newTop;
 
@@ -119,31 +121,61 @@
     //TODO click stuff
   }
 
+  // Start an animation loop which recursively computes this node and its
+  // children (and subchildren, recursively) positions
+  Node.prototype.animateToStaticPosition = function() {
 
-  // Returns 'true' if I reached stability (i.e. an equilibrium point where
-  // all the forces are below a threshold), otherwise return 'false'. The value
-  // is also stored in the node property 'stabilityReached'
-  Node.prototype.stabilityReached = function () {
+    // Set a timeout to prevent the animation for this node (and its children)
+    // to last indefinitely due to threshold errors
+    var thisNode = this; // For the closure
+    clearTimeout (this.stabilityTimeout); // If I received a second command, make
+                                          // sure the previous timer isn't running
+    this.stopSubtreeMoving = false; // Reset the timeout flag
+    this.stabilityTimeout = setTimeout(function () {
+      thisNode.$map.rootNode.stopSubtreeMoving = true; // Stop the entire tree
+      finalizeConnectors (thisNode.$map);         // Make sure connectors
+                                                  // are fully black
+      console.log ("MOVEMENT STOPPED TIMEOUT");
+    }, MOVEMENT_TIMEOUT * 1000);
 
-    // To determine if I reached stability I need to calculate my resulting
-    // force vector and compare it against some minimum thresholds
-    var forceVector = this.calculateForceVector ();
-    // Save the resulting vector components (these will move our position)
-    this.dx = forceVector.dx * 10;
-    this.dy = forceVector.dy * 10;
+    this.animationLoop (); // Start the animation loop
+  }
 
-    // Set to zero insignificant forces
-    if (Math.abs(this.dx) < this.$map.options.minimumForceThreshold)
-      this.dx = 0;
-    if (Math.abs(this.dy) < this.$map.options.minimumForceThreshold)
-      this.dy = 0;
-    if (Math.abs(this.dx) + Math.abs(this.dy) === 0) { // If both are insignificant
-      this.dx = this.dy = 0;
-      console.log("Node " + this.name + " has reached equilibrium");
-      return true; // Yes, I've reached equilibrium
+  // This function will call itself repeatedly until all children nodes have
+  // reached an equilibrium position
+  Node.prototype.animationLoop = function () {
+
+    // For graphical reasons lines shouldn't be shown when the map is being
+    // resized and nodes are scattered in their "hasPosition" radial madness.
+    // 'linesCanBeShown' is set to true when lines can be drawn nicely
+    if (this.$map.linesCanBeShown === true) {
+      this.$map.canvas.clear(); // Regardless of whether a node has moved or not,
+                                // it is computationally less expensive and easier
+                                // to just update the entire canvas for lines
+      $.each (this.$map.lines, function () { // Redraw all the lines
+        this.draw ();
+      });
     }
 
-    return false; // State that I haven't reached stability yet
+    // The core of this routine: stops the recursion if my subtree is stable
+    // or if this node timeouted
+    if ( this.subtreeSeekEquilibrium() === true ||  // Is our subtree stable?
+         this.stopSubtreeMoving == true) {          // Or did I timeout?
+
+      if (this.$parent === null) {
+        // When the root has reached stability, the entire tree is stable. This
+        // is the perfect time to nicely render the connectors at full black
+        // opacity gradually
+        finalizeConnectors (this.$map);
+      }
+
+      return; // Avoid the callback and just return if our subtree got equilibrium
+    }
+
+    var thisNode = this;
+    setTimeout(function () { // Start animation again if subtree isn't stable
+      thisNode.animationLoop();
+    }, 10);
   }
 
   // Position a node in the (x;y) coordinates by taking into account the element's
@@ -174,24 +206,12 @@
     this.takePosition (); // Immediately place this node
   }
 
-  // Start an animation loop which recursively computes this node and its
-  // children (and subchildren, recursively) positions
-  Node.prototype.animateToStaticPosition = function() {
-
-    // Set a timeout to prevent the animation for this node (and its children)
-    // to last indefinitely due to threshold errors
-    var thisNode = this; // For the closure
-    clearTimeout (this.stabilityTimeout); // If I received a second command, make
-                                          // sure the previous timer isn't running
-    this.stopSubtreeMoving = false; // Reset the timeout flag
-    this.stabilityTimeout = setTimeout(function () {
-      thisNode.$map.rootNode.stopSubtreeMoving = true; // Stop the entire tree
-      finalizeConnectors (thisNode.$map);         // Make sure connectors
-                                                  // are fully black
-      console.log ("MOVEMENT STOPPED TIMEOUT");
-    }, MOVEMENT_TIMEOUT * 1000);
-
-    this.animationLoop (); // Start the animation loop
+  // Finalize all the connectors of a map by applying the final opacity.
+  // Does nothing if they're already fully opaque
+  function finalizeConnectors ($map) {
+    $.each ($map.lines, function () {
+      this.path.animate({'opacity': 1.0}, 1000);
+    });
   }
 
   // Returns 'true' if the entire subtree (i.e. me and my child nodes)
@@ -246,87 +266,30 @@
     return isSubtreeStable;
   }
 
-  // Finalize all the connectors of a map by applying the final opacity.
-  // Does nothing if they're already fully opaque
-  function finalizeConnectors ($map) {
-    $.each ($map.lines, function () {
-      this.path.animate({'opacity': 1.0}, 1000);
-    });
-  }
+  // Returns 'true' if I reached stability (i.e. an equilibrium point where
+  // all the forces are below a threshold), otherwise return 'false'. The value
+  // is also stored in the node property 'stabilityReached'
+  Node.prototype.stabilityReached = function () {
 
-  // This function will call itself repeatedly until all children nodes have
-  // reached an equilibrium position
-  Node.prototype.animationLoop = function () {
+    // To determine if I reached stability I need to calculate my resulting
+    // force vector and compare it against some minimum thresholds
+    var forceVector = this.calculateForceVector ();
+    // Save the resulting vector components (these will move our position)
+    this.dx = forceVector.dx * 10;
+    this.dy = forceVector.dy * 10;
 
-    // For graphical reasons lines shouldn't be shown when the map is being
-    // resized and nodes are scattered in their "hasPosition" radial madness.
-    // 'linesCanBeShown' is set to true when lines can be drawn nicely
-    if (this.$map.linesCanBeShown === true) {
-      this.$map.canvas.clear(); // Regardless of whether a node has moved or not,
-                                // it is computationally less expensive and easier
-                                // to just update the entire canvas for lines
-      $.each (this.$map.lines, function () { // Redraw all the lines
-        this.draw ();
-      });
+    // Set to zero insignificant forces
+    if (Math.abs(this.dx) < this.$map.options.minimumForceThreshold)
+      this.dx = 0;
+    if (Math.abs(this.dy) < this.$map.options.minimumForceThreshold)
+      this.dy = 0;
+    if (Math.abs(this.dx) + Math.abs(this.dy) === 0) { // If both are insignificant
+      this.dx = this.dy = 0;
+      console.log("Node " + this.name + " has reached equilibrium");
+      return true; // Yes, I've reached equilibrium
     }
 
-    // (*) This code is needed to avoid a nasty problem: when nodes are dragged
-    // the bounding box calculation SHOULDN'T take place. Otherwise bad things
-    // can happen. When is it safe to calculate bounding boxes again?
-    // When everything is stable: i.e. when the root node reached stability.
-    var isMySubtreeStable = this.subtreeSeekEquilibrium();
-    if ( isMySubtreeStable === true && this.$parent === null &&
-         this.$map.dragActiveOnMap === true) {
-      this.$map.dragActiveOnMap = false;
-    }
-
-    // The core of this routine: stops the recursion if my subtree is stable
-    // or if this node timeouted
-    if ( isMySubtreeStable === true ||      // Is our subtree stable?
-         this.stopSubtreeMoving == true) {  // Or perhaps I timeouted?
-
-      if (this.$parent === null) {
-        // When the root has reached stability, the entire tree is stable. This
-        // is the perfect time to nicely render the connectors at full black
-        // opacity gradually
-        finalizeConnectors (this.$map);
-      }
-
-      return; // Avoid the callback and just return if our subtree got equilibrium
-    }
-
-    if (this.$map.dragActiveOnMap === false) { // See comments above (*)
-      // Since something has moved (no stability yet), calculate the bounding box
-      // containing all our children (they might be outside the container)
-      var boundingBox = { x: this.$map.options.mapArea.width,
-                          y: this.$map.options.mapArea.height};
-      var Xgap = 0, Ygap = 0;
-      $.each (this.$map.nodes, function () {
-
-        if (this.x - this.elementWidth / 2< 0 && Math.abs(this.x) > Xgap)
-          Xgap = Math.abs(this.x);
-        else if (this.x + this.elementWidth / 2 > boundingBox.x && Math.abs(this.x) > Xgap)
-          Xgap = Math.abs(this.x);
-        if (this.y - this.elementHeight / 2 < 0 && Math.abs(this.y) > Ygap)
-          Ygap = Math.abs(this.y);
-        else if (this.y + this.elementHeight / 2 > boundingBox.y && Math.abs(this.y) > Ygap)
-          Ygap = Math.abs(this.y);
-      });
-      if (Xgap !== 0 || Ygap !== 0) {
-        this.$map.options.mapArea.width += Xgap;
-        this.$map.options.mapArea.height += Ygap;
-
-        // Apply, if necessary, the bounding box to the canvas (that might also
-        // cause the container to be resized)
-        this.$map.canvas.setSize (this.$map.options.mapArea.width,
-                                  this.$map.options.mapArea.height);
-      }
-    }
-
-    var thisNode = this;
-    setTimeout(function () { // Start animation again if subtree isn't stable
-      thisNode.animationLoop();
-    }, 10);
+    return false; // State that I haven't reached stability yet
   }
 
   // Using Coulomb's Law, calculate a repulsion force from another node. If
@@ -417,8 +380,6 @@
       fy += f.dy;
     }
 
-
-
     // Using Hooke's Law, add an attractive force per each line I'm a part of
     // (only if they're not my children)
     for (i = 0; i < this.$map.lines.length; ++i) {
@@ -440,7 +401,6 @@
       fx += f.dx;
       fy += f.dy;
     }
-
 
     // If I'm the selected node, push me towards the center of the map (Hooke)
     if (this.$map.selectedNode === this) {
@@ -494,7 +454,10 @@
       mapArea: {
         width:  initialSize,
         height: initialSize
-      }
+      },
+      scale: 1.0  // (*) If the map (or one if its containers) gets scaled with
+                  // the 'transform: scale(x)' css property, this needs to be
+                  // also set to the same value in order for the drag to work
     }, options);
 
     // Set up a drawing area
@@ -509,12 +472,14 @@
     this.selectedNode = null; // The centered, selected node
     this.rootNode = null; // Root node of the map (not the selected one)
     this.linesCanBeShown = false; // For graphical reasons, avoids artifacts
-    this.dragActiveOnMap = false;  // No resizing the containers if drag is active
 
     // Add a canvas to the DOM element associated with this selector
     var canvas = Raphael (this[0], 0, 0, options.mapArea.width,
                                          options.mapArea.height);
     this.canvas = canvas; // Also save it as a property
+    $(this.canvas).css ('margin-left', '-100px'); // If the canvas has a dimension
+                                             // greater than its parent, don't
+                                             // hide its lines anyway
 
     // Add a class to the map DOM object to let node styles be applied
     this.addClass ('nodemap');
@@ -560,6 +525,14 @@
     $map.linesCanBeShown = true; // Due to a graphic effect during nodes moving,
                                   // it is nicer to just show the connectors when
                                   // nodes have been positioned for the first time
+    return this;
+  }
+
+  // If a scale factor has been applied to any of our parent containers, this
+  // will allow the map nodes' drag to function properly even if scaled (see (*))
+  $.fn.setScale = function (scaleFactor) { // Typical scope: $('body') object
+    this.options.scale = scaleFactor;
+    return this;
   }
 
   // - internal use - Adds the nodes recursively to the map given:
