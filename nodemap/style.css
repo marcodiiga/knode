@@ -25,6 +25,6 @@
      relative to this map area */
   position: relative;
   display: block;
-  transform: scale(0.5);  /* This might need to be adjusted */
+  transform: scale(1.0);  /* This might need to be adjusted */
 /*  transform-origin: 10% 10%; /* This might need to be adjusted */
 }

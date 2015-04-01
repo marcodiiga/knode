@@ -99,10 +99,10 @@
         thisNode.$map.dragActiveOnMap = true;
 
         var changeLeft = ui.position.left - ui.originalPosition.left; // find change in left
-        var newLeft = ui.originalPosition.left + changeLeft / (( 0.5)); // adjust new left by our zoomScale
+        var newLeft = ui.originalPosition.left + changeLeft / (( 1.0)); // adjust new left by our zoomScale
 
         var changeTop = ui.position.top - ui.originalPosition.top; // find change in top
-        var newTop = ui.originalPosition.top + changeTop / 0.5; // adjust new top by our zoomScale
+        var newTop = ui.originalPosition.top + changeTop / 1.0; // adjust new top by our zoomScale
 
         ui.position.left = newLeft;
         ui.position.top = newTop;
@@ -186,8 +186,8 @@
     this.stopSubtreeMoving = false; // Reset the timeout flag
     this.stabilityTimeout = setTimeout(function () {
       thisNode.$map.rootNode.stopSubtreeMoving = true; // Stop the entire tree
-      thisNode.$map.rootNode.animateToStaticPosition (); // Make sure connectors
-                                                         // are fully black
+      finalizeConnectors (thisNode.$map);         // Make sure connectors
+                                                  // are fully black
       console.log ("MOVEMENT STOPPED TIMEOUT");
     }, MOVEMENT_TIMEOUT * 1000);
 
@@ -246,6 +246,14 @@
     return isSubtreeStable;
   }
 
+  // Finalize all the connectors of a map by applying the final opacity.
+  // Does nothing if they're already fully opaque
+  function finalizeConnectors ($map) {
+    $.each ($map.lines, function () {
+      this.path.animate({'opacity': 1.0}, 1000);
+    });
+  }
+
   // This function will call itself repeatedly until all children nodes have
   // reached an equilibrium position
   Node.prototype.animationLoop = function () {
@@ -277,13 +285,11 @@
     if ( isMySubtreeStable === true ||      // Is our subtree stable?
          this.stopSubtreeMoving == true) {  // Or perhaps I timeouted?
 
-      if (this.$parent === null) { // When the root has reached stability,
-                                   // the entire tree is stable. This is the
-                                   // perfect time to nicely render the connectors
-                                   // at full black opacity gradually
-        $.each (this.$map.lines, function () {
-          this.path.animate({'opacity': 1.0}, 1000);
-        });
+      if (this.$parent === null) {
+        // When the root has reached stability, the entire tree is stable. This
+        // is the perfect time to nicely render the connectors at full black
+        // opacity gradually
+        finalizeConnectors (this.$map);
       }
 
       return; // Avoid the callback and just return if our subtree got equilibrium
