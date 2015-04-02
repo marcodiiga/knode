@@ -29,12 +29,18 @@
       var subsub22Node = map.getNodeFromId ("subsub22");
       subsub22Node.deleteNode ();
     }
+
+    function selectSubnode4 () {
+      var subnode4 = map.getNodeFromId ("subnode4");
+      subnode4.markAsSelected ();
+    }
   </script>
 
 </head>
 <body>
   <input type="button" onclick="addSub3Node()" value="Add Sub3Node"/>
   <input type="button" onclick="removeSubSubNode22()" value="Remove SubSub22Node"/>
+  <input type="button" onclick="selectSubnode4()" value="Select subnode4"/>
   <div id="ulList">
     <!-- TODO: generate this list dynamically -->
     <ul>
@@ -56,7 +62,7 @@
               <li><a href="subnode 2-42">Sub Subnode 3-4</a></li>
             </ul>
           </li>
-          <li><a href="subnode 4">Subnode 4</a>
+          <li><a id="subnode4" href="subnode 4">Subnode 4</a>
             <ul>
               <li><a href="subnode 2-1">Sub Subnode 4-1</a></li>
               <li><a href="subnode 2-2">Sub Subnode 4-2</a></li>

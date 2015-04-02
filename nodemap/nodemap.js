@@ -165,6 +165,19 @@
     this.$parent.node.animateToStaticPosition (); // Start animate the parent's subtree
   }
 
+  // Mark this node as selected for the entire map. This causes the selected
+  // node to be positioned at the center of the map and become the root node
+  Node.prototype.markAsSelected = function () {
+    if (this.$map.rootNode === undefined || this.$map.rootNode === null) {
+      $.error ("No root node found - possibly corrupted map object");
+      return;
+    }
+
+    // Rewire the entire map to have this node as the root one. This also causes
+    // losing equilibrium to the entire tree
+    this.$map.changeRootNodeTo (this);
+  }
+
 
   // ~-~-~ Node internal functions beyond this point ~-~-~
 
@@ -286,7 +299,7 @@
     // position me at the center of the map if I'm the root
     // TODO: implement selection mechanism
     if (this.hasPosition === false) {
-      if (this.$parent === null) {
+      if (this.$map.rootNode === this) {
         this.x = (this.$map.options.mapArea.width / 2);
         this.y = (this.$map.options.mapArea.height / 2);
         this.hasPosition = true;
@@ -417,7 +430,7 @@
   // given node. The force vector is the result of the repulsive forces against
   // all the other nodes in the graph and attractive forces towards the nodes
   // connected to this with a line. There's also an additional force: if this
-  // node is the selected one (isTheSelectedNode is true), it will have a force
+  // node is the root one (rootNode is 'this'), it will have a force
   // that pushes it towards the center of the map
   Node.prototype.calculateForceVector = function () {
     var i, otherEnd, f, fx = 0, fy = 0;
@@ -466,7 +479,7 @@
     }
 
     // If I'm the selected node, push me towards the center of the map (Hooke)
-    if (this.$map.selectedNode === this) {
+    if (this.$map.rootNode === this) {
       f = this.calculateSingleAttractiveForceTowardsNode ({
         x: (this.$map.options.mapArea.width / 2),
         y: (this.$map.options.mapArea.height / 2),
@@ -534,8 +547,7 @@
     this.options = options; // Save it for the $map
     this.nodes = []; // A list of all the nodes of the map (necessary later)
     this.lines = []; // A list of all the connections in the map
-    this.selectedNode = null; // The centered, selected node
-    this.rootNode = null; // Root node of the map (not the selected one)
+    this.rootNode = null; // Root node of the map (always the selected one)
     this.linesCanBeShown = false; // For graphical reasons, avoids artifacts
 
     // Add a canvas to the DOM element associated with this selector
@@ -570,7 +582,7 @@
   }
 
   // Create the nodes of the map recursively
-  $.fn.createNodes = function (elementsList) { // Typical scope: $('body') object
+  $.fn.createNodes = function (elementsList) { // Typical scope: $('body') map object
     var $map = this; // Save 'this' (the map selector) for any closure
     var $rootLi = $('>ul>li', elementsList);
     if ($rootLi.length === 0) { // A root node must exist
@@ -595,14 +607,14 @@
 
   // If a scale factor has been applied to any of our parent containers, this
   // will allow the map nodes' drag to function properly even if scaled (see (*))
-  $.fn.setScale = function (scaleFactor) { // Typical scope: $('body') object
+  $.fn.setScale = function (scaleFactor) { // Typical scope: $('body') map object
     this.options.scale = scaleFactor;
     return this;
   }
 
   // Search for a node with the given id in the map and returns the element
   // if it exists. Returns 'null' if there's no node with the given id.
-  $.fn.getNodeFromId = function (nodeId) { // Typical scope: $('body') object
+  $.fn.getNodeFromId = function (nodeId) { // Typical scope: $('body') map object
 
     var nodesWithId = $.grep (this.nodes, function (node) {
       if (node.id === nodeId)
@@ -657,11 +669,40 @@
       // children will have to (this is recursive)
       markNodesAsNeedingPositionRecursively ($parent.node.children);
       $parent.node.animateToStaticPosition (); // Start animate the parent's subtree
-    } else
-      $map.selectedNode = this.node; // TODO: implement a selection mechanism, for now
-                                     // the root is the selected element
+    } // Root node hasn't a position yet.. and no siblings to mark as needing pos
 
     return this.node.$element;
+  }
+
+  $.fn.changeRootNodeTo = function (node) { // Typical scope: $('body') map object
+
+    this.rootNode = node;
+
+    // Rewire the parent of this node to be a child of this node recursively
+    // until we've reached the old root node
+    var demoteMyParentToMyChild = function (node, $formerParent, $newParent) {
+      if ($formerParent === null)
+        return; // We reached the former root node, stop the recursion
+
+      // Add the former parent to node's children
+      node.children[node.children.length] = $formerParent.node;
+      // Delete 'node' from the children of its former parent
+      $formerParent.node.children = $.grep ($formerParent.node.children, function (child) {
+        return child != node;
+      });
+      // Set node as the former parent's new parent
+      var $formerParentsFormerParent = $formerParent.node.$parent;
+      $formerParent.node.$parent = node.$element;
+      // And finally update node's parent to the one passed to the function
+      node.$parent = $newParent;
+      demoteMyParentToMyChild ($formerParent.node, $formerParentsFormerParent, node);
+    };
+
+    demoteMyParentToMyChild (node, node.$parent, null);
+
+    // Causes the entire tree to lose equilibrium and force a reposition
+    //markNodesAsNeedingPositionRecursively ([this.rootNode]);
+    this.rootNode.animateToStaticPosition ();
   }
 
 } (jQuery));
