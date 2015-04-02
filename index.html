@@ -13,29 +13,42 @@
   <script type="text/javascript" src="nodemap/nodemap.js"></script>
 
   <script>
+    var map;
     $(document).ready(function() {
 
-      $('#map').createNodeMap().createNodes($('#ulList')).setScale(0.5);
-
+      map = $('#map').createNodeMap();
+      map.createNodes($('#ulList')).setScale(0.5);
     });
+
+    function addSub3Node () {
+      var sub3Node = map.getNodeFromId ("sub3");
+      sub3Node.addChildNode (null, "href", "I'm a child");
+    }
+
+    function removeSubSubNode22 () {
+      var subsub22Node = map.getNodeFromId ("subsub22");
+      subsub22Node.deleteNode ();
+    }
   </script>
 
 </head>
 <body>
+  <input type="button" onclick="addSub3Node()" value="Add Sub3Node"/>
+  <input type="button" onclick="removeSubSubNode22()" value="Remove SubSub22Node"/>
   <div id="ulList">
     <!-- TODO: generate this list dynamically -->
     <ul>
-      <li><a href="root node">Root node</a>
+      <li><a id="root" href="root node">Root node</a>
         <ul>
           <li><a href="subnode 1">Subnode 1</a></li>
           <li><a href="subnode 2">Subnode 2 (also a list)</a>
             <ul>
               <li><a href="subnode 2-1">Sub Subnode 2-1</a></li>
-              <li><a href="subnode 2-2">Sub Subnode 2-2</a></li>
+              <li><a id="subsub22" href="subnode 2-2">Sub Subnode 2-2</a></li>
               <li><a href="subnode 2-3">Sub Subnode 2-3</a></li>
             </ul>
           </li>
-          <li><a href="subnode 3">Subnode 3</a>
+          <li><a id="sub3" href="subnode 3">Subnode 3</a>
             <ul>
               <li><a href="subnode 2-1">Sub Subnode 3-1</a></li>
               <li><a href="subnode 2-2">Sub Subnode 3-2</a></li>

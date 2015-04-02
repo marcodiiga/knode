@@ -37,10 +37,11 @@
   // ---------- Node and Line class and methods ----------
 
   // Typical scope: Node object
-  var Node = function ($map, $parent, nodeName, href, depthLevel) {
+  var Node = function ($map, $parent, nodeName, nodeId, href, depthLevel) {
 
     this.$map         = $map;
     this.name         = nodeName;
+    this.id           = nodeId || 0; // The id might be undefined
     this.href         = href;
     this.$parent      = $parent; // null for root object, $('a') for the others
     this.children     = [];      // Our children will populate this for us
@@ -119,6 +120,67 @@
     });
 
     //TODO click stuff
+  }
+
+  // Add a child node to the 'this' parent node. 'id' can be null if no id is
+  // needed to reference the node later
+  Node.prototype.addChildNode = function (id, href, name) {
+    // Create a new node element as my child and an incremented depth level
+    this.$map.addNode (this.$map, this.$element, this.depthLevel+1, id, href, name);
+  }
+
+  // Delete this node from the map. If called on the root will delete all the
+  // entire graph. Child nodes aren't preserved.
+  Node.prototype.deleteNode = function () {
+    var thisNode = this; // For the various closures
+
+    if (this.$map.rootNode === this) { // Destroy all the graph
+      $.each (this.$map.nodes, function () {
+        this.$element.remove ();
+      });
+      this.$map.nodes = [];
+      this.$map.lines = [];
+      this.canvas.clear ();
+      return;
+    }
+    // Delete the node from my parent and from the map
+    this.$parent.node.children = $.grep (this.$parent.node.children, function (node) {
+      return node !== thisNode; // Return all the nodes which aren't this one
+    });
+    this.$map.nodes = $.grep (this.$map.nodes, function (node) {
+      return node !== thisNode;
+    });
+    // And also delete the connectors referring to this node
+    this.$map.lines = $.grep (this.$map.lines, function (line) {
+      if (line.startNode === thisNode || line.endNode === thisNode)
+        return false;
+      else
+        return true;
+    });
+    // Finally delete the <a> element
+    this.$element.remove ();
+
+    // All my sibling nodes have now to be re-positioned
+    markNodesAsNeedingPositionRecursively (this.$parent.node.children);
+    this.$parent.node.animateToStaticPosition (); // Start animate the parent's subtree
+  }
+
+
+  // ~-~-~ Node internal functions beyond this point ~-~-~
+
+  // For internal use - marks recursively an array of nodes and all children of
+  // those nodes as needing position (i.e. to be repositioned)
+  var markNodesAsNeedingPositionRecursively = function (nodeArray) {
+    // Every other sibling of this node will have to be re-positioned around
+    // the parent for the first time the children are laid out. Also their
+    // children will have to (this is recursive)
+    var setNeedsPositionRecursively = function (childrenNodes) {
+      $.each (childrenNodes, function () {
+        this.hasPosition = false;
+        setNeedsPositionRecursively (this.children);
+      });
+    };
+    setNeedsPositionRecursively (nodeArray);
   }
 
   // Start an animation loop which recursively computes this node and its
@@ -535,6 +597,30 @@
     return this;
   }
 
+  // Search for a node with the given id in the map and returns the element
+  // if it exists. Returns 'null' if there's no node with the given id.
+  $.fn.getNodeFromId = function (nodeId) { // Typical scope: $('body') object
+
+    var nodesWithId = $.grep (this.nodes, function (node) {
+      if (node.id === nodeId)
+        return true;
+      else
+        return false;
+    });
+
+    if (nodesWithId.length > 1) {
+      $.error ("Multiple nodes with the same id found");
+      return;
+    }
+
+    if (nodesWithId.length === 0)
+      return null;
+    else
+      return nodesWithId[0];
+  }
+
+  // ~-~-~ Map internal functions beyond this point ~-~-~
+
   // - internal use - Adds the nodes recursively to the map given:
   //  - the map object
   //  - the page parent li element
@@ -548,12 +634,17 @@
     });
   }
 
-  $.fn.addNode = function ($map, $parent, depthLevel) { // Typical scope: $('a') object
+  // Called from a jQuery selector for a node element (e.g. <a>), inserts the
+  // node into the map after creating a new node object. If id/href/text are
+  // supplied, the selector attributes are overridden
+  // Typical scope: $('a') object
+  $.fn.addNode = function ($map, $parent, depthLevel, id, href, text) {
     this.node = new Node ($map,      // map to add <a>s, typically $('body')
                           $parent,         // parent <a> selector
-                          this.text(),        // nodeName
-                          this.attr('href'),     // href
-                          depthLevel);              // depth level of child
+                          text || this.text(),         // nodeName
+                          id   || this.attr('id'),     // node id
+                          href || this.attr('href'),   // href
+                          depthLevel);                 // depth level of child
     $map.nodes[$map.nodes.length] = this.node; // Keep a list of all the nodes
                                                // for some distance calculations
     // Everytime a node is added its parent's subtree needs to be reshaped
@@ -561,13 +652,7 @@
       // Every other sibling of this node will have to be re-positioned around
       // the parent for the first time the children are laid out. Also their
       // children will have to (this is recursive)
-      var setNeedsPositionRecursively = function (childrenNodes) {
-        $.each (childrenNodes, function () {
-          this.hasPosition = false;
-          setNeedsPositionRecursively (this.children);
-        });
-      };
-      setNeedsPositionRecursively ($parent.node.children);
+      markNodesAsNeedingPositionRecursively ($parent.node.children);
       $parent.node.animateToStaticPosition (); // Start animate the parent's subtree
     } else
       $map.selectedNode = this.node; // TODO: implement a selection mechanism, for now
