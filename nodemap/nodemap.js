@@ -259,7 +259,8 @@
   // children, also lay them off around recursively
   Node.prototype.layNodeAroundParent = function (index) {
     var stepAngle = Math.PI * 2 / this.$parent.node.children.length; // Radiants
-    var angle = index * stepAngle;
+    var angle = index * stepAngle
+     + (Math.PI * 2 * this.$map.options.nodes_starting_angle / 360); // Start offset
     this.x = (CHILD_PARENT_INIT_DISTANCE * Math.cos(angle)) + this.$parent.node.x;
     this.y = (CHILD_PARENT_INIT_DISTANCE * Math.sin(angle)) + this.$parent.node.y;
     $.each (this.children, function (childIndex) {
@@ -517,9 +518,11 @@
         width:  initialSize,
         height: initialSize
       },
-      scale: 1.0  // (*) If the map (or one if its containers) gets scaled with
+      scale: 1.0, // (*) If the map (or one if its containers) gets scaled with
                   // the 'transform: scale(x)' css property, this needs to be
                   // also set to the same value in order for the drag to work
+      nodes_starting_angle:  45 // Degrees - the starting angle to begin radially
+                                // position the children for a parent node
     }, options);
 
     // Set up a drawing area
