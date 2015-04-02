@@ -242,6 +242,8 @@
         // is the perfect time to nicely render the connectors at full black
         // opacity gradually
         finalizeConnectors (this.$map);
+        this.$map.moveEntireGraphWithRoot = false; // And stop moving the entire graph
+                                                   // seeking the center with me
       }
 
       return; // Avoid the callback and just return if our subtree got equilibrium
@@ -257,10 +259,14 @@
   // dimensions and the force components that are asking to move it (dx;dy)
   Node.prototype.takePosition = function () {
 
-    if (this.dx !== 0) // Apply dx and dy components if present
+    if (this.dx !== 0) { // Apply dx and dy components if present
       this.x += this.dx * 10;
-    if (this.dy !== 0)
+      this.dx = 0; // empty the calculated force (it has been applied)
+    }
+    if (this.dy !== 0) {
       this.y += this.dy * 10;
+      this.dy = 0;
+    }
 
     this.adjustedX = this.x - (this.elementWidth / 2);
     this.adjustedY = this.y - (this.elementHeight / 2);
@@ -297,7 +303,6 @@
 
     // I'm included in the search for equilibrium, thus if I'm not positioned,
     // position me at the center of the map if I'm the root
-    // TODO: implement selection mechanism
     if (this.hasPosition === false) {
       if (this.$map.rootNode === this) {
         this.x = (this.$map.options.mapArea.width / 2);
@@ -330,8 +335,20 @@
     } else { // If I'm not being dragged, I might be already stable
       this.isStable = this.stabilityReached ();
       isSubtreeStable =  this.isStable && isSubtreeStable; // Am I stable?
-      if (isSubtreeStable == false) // If my subtree isn't stable yet,
-        this.takePosition (); // keep adjusting my position to my equilibrium
+      if (isSubtreeStable == false) { // If my subtree isn't stable yet..
+
+        // (If this is the result of a root node swap, apply the force to the entire
+        // graph)
+        if (this.$map.rootNode === this && this.$map.moveEntireGraphWithRoot) {
+          var thisNode = this;
+          $.each (this.$map.nodes, function () {
+            this.dx += thisNode.dx;
+            this.dy += thisNode.dy;
+            this.takePosition ();
+          });
+        }
+        this.takePosition (); // ...keep adjusting my position to my equilibrium
+      }
     }
 
     // Do the same for every other children: seek stability recursively
@@ -351,8 +368,8 @@
     // force vector and compare it against some minimum thresholds
     var forceVector = this.calculateForceVector ();
     // Save the resulting vector components (these will move our position)
-    this.dx = forceVector.dx * 10;
-    this.dy = forceVector.dy * 10;
+    this.dx += forceVector.dx * 10;
+    this.dy += forceVector.dy * 10;
 
     // Set to zero insignificant forces
     if (Math.abs(this.dx) < this.$map.options.minimumForceThreshold)
@@ -484,7 +501,7 @@
         x: (this.$map.options.mapArea.width / 2),
         y: (this.$map.options.mapArea.height / 2),
         centerOfTheMap: true
-      }, 10); // An amplify factor is provided to get the graph towards the center
+      }, 25); // An amplify factor is provided to get the graph towards the center
       fx += f.dx;
       fy += f.dy;
     }
@@ -549,6 +566,9 @@
     this.lines = []; // A list of all the connections in the map
     this.rootNode = null; // Root node of the map (always the selected one)
     this.linesCanBeShown = false; // For graphical reasons, avoids artifacts
+    this.moveEntireGraphWithRoot = false; // When a root node swap occurs, the
+                                          // entire graph needs to be moved to
+                                          // the new graph center
 
     // Add a canvas to the DOM element associated with this selector
     var canvas = Raphael (this[0], 0, 0, options.mapArea.width,
@@ -700,8 +720,8 @@
 
     demoteMyParentToMyChild (node, node.$parent, null);
 
+    this.moveEntireGraphWithRoot = true; // Moves everything with the new root
     // Causes the entire tree to lose equilibrium and force a reposition
-    //markNodesAsNeedingPositionRecursively ([this.rootNode]);
     this.rootNode.animateToStaticPosition ();
   }
 
