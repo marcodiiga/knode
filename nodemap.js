@@ -53,6 +53,9 @@
                                     // closer to their parents)
     this.stabilityTimeout = 0;      // A timeout for the subtree stability search
     this.stopSubtreeMoving = false; // The variable that controls the timeout
+    this.beginDragging = false;     // Since jquery messes around with a node's
+                                    // position when dragging starts, if this is
+                                    // true, we don't consider this node at all
 
     // Create the node element in the page and append it to the map's object
     this.$element = $('<a href="' + this.href + '"><p>' + this.name + '</p></a>')
@@ -91,8 +94,9 @@
     var thisNode = this;
     this.$element.draggable ({ // Set a jQuery callback function when dragging
       start: function(event, ui) {
-          ui.position.left = 0;
-          ui.position.top = 0;
+        thisNode.beginDragging = true; // Avoid jquery problems with scale and drag
+        ui.position.left = 0;
+        ui.position.top = 0;
       },
       drag: function (event, ui) {
 
@@ -115,6 +119,9 @@
           thisNode.animateToStaticPosition ();
         else // If I'm not the root, animate my parent's subtree (where I belong)
           thisNode.$parent.node.animateToStaticPosition ();
+
+        thisNode.beginDragging = false; // From now on, consider this node's
+                                        // position when moving the others
       }
     });
 
@@ -458,9 +465,9 @@
       for (i = 0; i < mySiblingNodes.length; ++i) {
         if (mySiblingNodes[i] === this)
           continue; // Repulsive force from myself = nonsense
-        //
-  //if (!this.$map.nodes[i].visible) // TODO: a visible attribute could be useful
-      //    continue;
+
+        if (mySiblingNodes[i].beginDragging === true)
+          continue; // Do not consider a node immediately being dragged (unreliable)
 
         f = this.calculateSingleRepulsionForceFromNode (mySiblingNodes[i]);
         fx += f.dx;
@@ -485,8 +492,6 @@
 
       if (this.children.indexOf(otherEnd) !== -1)
         continue; // This is one of my children, keep on searching
-
-      // TODO: ignore hidden nodes' pulling (visible)
 
       f = this.calculateSingleAttractiveForceTowardsNode (otherEnd,
         Math.pow(this.depthLevel, 4)); // Powerful damping if we're deeply nested
