@@ -90,7 +90,6 @@
 
     var thisNode = this;
     this.$element.draggable ({ // Set a jQuery callback function when dragging
-      handle: '.drag-handle',
       start: function(event, ui) {
           ui.position.left = 0;
           ui.position.top = 0;
