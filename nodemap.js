@@ -56,6 +56,7 @@
     this.beginDragging = false;     // Since jquery messes around with a node's
                                     // position when dragging starts, if this is
                                     // true, we don't consider this node at all
+                                    // when calculating repulsion forces
 
     // Create the node element in the page and append it to the map's object.
     // If there's no href destination, just insert a div element instead of <a>
@@ -92,7 +93,7 @@
     } else {
       this.$parent.node.children.push (this); // Add me as a child of my parent
       // Add a line from this node to my parent
-      $map.lines[$map.lines.length] = new Line ($map, this, this.$parent.node);
+      $map.lines[$map.lines.length] = new Line ($map, this.$parent.node, this);
     }
 
     var thisNode = this;
@@ -150,7 +151,8 @@
       });
       this.$map.nodes = [];
       this.$map.lines = [];
-      this.canvas.clear ();
+      this.$map.rootNode = null;
+      this.$map.canvas.clear ();
       return;
     }
     // Delete the node from my parent and from the map
@@ -230,6 +232,11 @@
   // reached an equilibrium position
   Node.prototype.animationLoop = function () {
 
+    // Seeks equilibrium for the entire subtree and gives each subnode a new position
+    // closer to the equilibrium position. This has to be done before drawing the
+    // connectors in order to have an up-to-date position when drawing lines.
+    var isMySubtreeStable = this.subtreeSeekEquilibrium();
+    
     // For graphical reasons lines shouldn't be shown when the map is being
     // resized and nodes are scattered in their "hasPosition" radial madness.
     // 'linesCanBeShown' is set to true when lines can be drawn nicely
@@ -244,8 +251,8 @@
 
     // The core of this routine: stops the recursion if my subtree is stable
     // or if this node timeouted
-    if ( this.subtreeSeekEquilibrium() === true ||  // Is our subtree stable?
-         this.stopSubtreeMoving == true) {          // Or did I timeout?
+    if ( isMySubtreeStable === true ||        // Is our subtree stable?
+         this.stopSubtreeMoving == true) {    // Or did I timeout?
 
       if (this.$parent === null) {
         // When the root has reached stability, the entire tree is stable. This
@@ -528,6 +535,11 @@
 
   // Draw a connector between two nodes
   Line.prototype.draw = function () {
+    // Due to jQuery problems when dragging, the position of a node being dragged is not
+    // considered reliable before some "adjustments" have been made to its position
+    if (this.startNode.beginDragging === true || this.endNode.beginDragging === true)
+        return;
+
     this.path = this.$map.canvas.path ("M" + this.startNode.x + ' ' +
       this.startNode.y + "L" + this.endNode.x + ' ' + this.endNode.y).attr(
           {
@@ -628,7 +640,7 @@
     $map.resize(); // Resize the map AFTER all the nodes have been created. This
                    // gives us the possiblity of calculating if nodes need
                    // additional space in the map's area
-    $map.linesCanBeShown = true; // Due to a graphic effect during nodes moving,
+    $map.linesCanBeShown = true;  // Due to a graphic effect during nodes moving,
                                   // it is nicer to just show the connectors when
                                   // nodes have been positioned for the first time
     return this;
@@ -661,6 +673,25 @@
       return null;
     else
       return nodesWithId[0];
+  }
+  
+  // Creates a new root node for this map (throws an error if there's already one and the map hasn't been
+  // cleared). Returns the Node root object that has been created.
+  $.fn.createRootNode = function (id, href, text) { // Typical scope: $('body') object
+    if (this.rootNode != null) {
+      $.error ("This map has already a root node");
+      return;
+    }
+    var $emptySelector = $();
+    $emptySelector.addNode (this, null, 0 /* Root has always 0 depth */, id, href || undefined, text || undefined);
+    this.rootNode = $emptySelector.node;
+    return this.rootNode;
+  }
+  
+  // Deletes all the nodes and connections in the graph, this is a shorthand for rootNode.deleteNode();
+  $.fn.clearMap = function () { // Typical scope: $(body) map object
+    this.rootNode.deleteNode ();
+    return null;
   }
 
   // ~-~-~ Map internal functions beyond this point ~-~-~

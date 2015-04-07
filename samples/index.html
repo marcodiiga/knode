@@ -36,6 +36,16 @@
       subnode4.markAsSelected ();
     }
 
+    function recreateMapFromAPI () {
+        map.clearMap ();
+        
+        // Create a new root node
+        var newRoot = map.createRootNode ("root", null, "new Root");
+        // and a child element
+        newRoot.addChildNode(null, null, "New Child");
+        newRoot.addChildNode(null, null, "New Child 2");
+    }
+
   </script>
 
 </head>
@@ -43,6 +53,7 @@
   <input type="button" onclick="addSub3Node()" value="Add Sub3Node"/>
   <input type="button" onclick="removeSubSubNode22()" value="Remove SubSub22Node"/>
   <input type="button" onclick="selectSubnode4()" value="Select subnode4"/>
+  <input type="button" onclick="recreateMapFromAPI()" value="Delete map and recreate from API"/>
   <div id="ulList">
     <!--
       This is a list of elements to generate a map directly from the DOM
