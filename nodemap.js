@@ -685,6 +685,7 @@
     var $emptySelector = $();
     $emptySelector.addNode (this, null, 0 /* Root has always 0 depth */, id, href || undefined, text || undefined);
     this.rootNode = $emptySelector.node;
+    this.resize(); // Resize the map even after only one node has been inserted (updates height and width)
     return this.rootNode;
   }
   
