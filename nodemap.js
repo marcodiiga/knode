@@ -57,10 +57,14 @@
                                     // position when dragging starts, if this is
                                     // true, we don't consider this node at all
 
-    // Create the node element in the page and append it to the map's object
-    this.$element = $('<a href="' + this.href + '"><p>' + this.name + '</p></a>')
-      .addClass('node');
-    this.$element.node = this; // The <a> element stores a reference to us and
+    // Create the node element in the page and append it to the map's object.
+    // If there's no href destination, just insert a div element instead of <a>
+    if (this.href != undefined)
+      this.$element = $('<a href="' + this.href + '"><p>' + this.name + '</p></a>');
+    else
+      this.$element = $('<div><p>' + this.name + '</p></div>');
+    this.$element.addClass('node');
+    this.$element.node = this; // The <a>/<div> element stores a reference to us and
                                // we also store a reference to the <a> element
     this.$map.prepend (this.$element);
 
@@ -614,8 +618,9 @@
       return;
     }
     $rootLi = $rootLi.get(0);
-    // Create the root node
-    var $rootNode = $('>a', $rootLi).addNode ($map, null, 0 /* Root has 0 depth */);
+    // Create the root node (from the first <a> or <div> subobject of <li>)
+    var $rootNode = $('>a:first-of-type,>div:first-of-type', $rootLi)
+      .addNode ($map, null, 0 /* Root has 0 depth */);
 
     // Now create all the other nodes recursively
     addNodesRecursively ($map, $rootLi, $rootNode, 1 /* Depth level from 1 on */);
@@ -663,12 +668,15 @@
   // - internal use - Adds the nodes recursively to the map given:
   //  - the map object
   //  - the page parent li element
-  //  - the parent node <a> element
+  //  - the parent node <a>/<div>/whatever element
   function addNodesRecursively ($map, $parentLiElement, $parentNode, depthLevel) {
 
     // If there's a ul list, foreach li item
     $('>ul>li', $parentLiElement).each ( function () {
-      var $newNodeElement = $('>a', this).addNode ($map, $parentNode, depthLevel);
+      // Take the first <a> or <div> inside the <li> item (<a> will have their href
+      // set, <div> will not have any href)
+      var $newNodeElement = $('>a:first-of-type,>div:first-of-type', this)
+        .addNode ($map, $parentNode, depthLevel);
       addNodesRecursively ($map, this, $newNodeElement, depthLevel + 1);
     });
   }

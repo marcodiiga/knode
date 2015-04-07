@@ -1,4 +1,4 @@
-.nodemap a.node { /* Nodes of a nodemap */
+.nodemap .node { /* Nodes of a nodemap */
   z-index:100; /* needed otherwise the canvas will cover the nodes */
 
   background: #5e69b2;
@@ -12,11 +12,23 @@
 	-webkit-border-radius: 50px;
 	border-radius: 50px;
 }
-.nodemap a.node>p { /* Visualize text paragraphs centered in the nodes */
+
+.nodemap .node>p { /* Visualize text paragraphs centered in the nodes */
   color: white;
   display: table-cell;
   vertical-align: middle;
   text-align: center;
+}
+
+.nodemap div.node>p { /* Makes p elements children of div nodes
+                         unselectable with the mouse cursor (CSS3) */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  cursor: default;
 }
 
 .nodemap { /* The nodemap itself */
