@@ -560,6 +560,27 @@
       $.error ("Single selector instance expected, multiple instances found");
       return;
     }
+    
+    // Create an internal div where the map will be drawn and a wrapper div which
+    // will be in charge of handling overflows and scaling. This is how they're inserted:
+    // <div id="map">
+    //   <div id="internalWrapper" style="scaling stuff..">
+    //     <div id="internalMap>
+    //     </div>
+    //   </div>
+    // </div>
+    //
+    // WARNING: ALL the public APIs must refer to this internal map and NOT to the user-
+    // specified selector
+    this.$internalMapDiv = $("<div id='internalMap'></div>");
+    var scaleLevel = 1.0;
+    if (options.scaleLevel != undefined)
+      scaleLevel = options.scaleLevel;
+    this.$internalWrapperDiv = $("<div id='internalWrapper' style='transform-origin: 0% 0%; "  +
+      "transform: scale(" + scaleLevel + "); overflow: hidden; width:" + this.width() / scaleLevel + "px; " +
+      "height: " + this.height() / scaleLevel + "px;'></div>");
+    this.prepend ( this.$internalWrapperDiv );
+    this.$internalWrapperDiv.prepend ( this.$internalMapDiv );
 
     var initialSize = -1;
     options = $.extend({ // Add default options for our map to use
@@ -568,43 +589,40 @@
         width:  initialSize,
         height: initialSize
       },
-      scale: 1.0, // (*) If the map (or one if its containers) gets scaled with
-                  // the 'transform: scale(x)' css property, this needs to be
-                  // also set to the same value in order for the drag to work
+      scale: scaleLevel, // (*) If the map (or one if its containers) gets scaled with
+                         // the 'transform: scale(x)' css property, this needs to be
+                         // also set to the same value in order for the drag to work
       nodes_starting_angle:  45 // Degrees - the starting angle to begin radially
                                 // position the children for a parent node
     }, options);
 
-    // Set up a drawing area
+    // Set up a drawing area (initially set to the user-specified container's dimensions)
     if (options.mapArea.width === initialSize)
       options.mapArea.width = this.width();
     if (options.mapArea.height === initialSize)
       options.mapArea.height = this.height();
 
-    this.options = options; // Save it for the $map
-    this.nodes = []; // A list of all the nodes of the map (necessary later)
-    this.lines = []; // A list of all the connections in the map
-    this.rootNode = null; // Root node of the map (always the selected one)
-    this.linesCanBeShown = false; // For graphical reasons, avoids artifacts
-    this.moveEntireGraphWithRoot = false; // When a root node swap occurs, the
+    this.$internalMapDiv.options = options; // Save it for the $map
+    this.$internalMapDiv.nodes = []; // A list of all the nodes of the map (necessary later)
+    this.$internalMapDiv.lines = []; // A list of all the connections in the map
+    this.$internalMapDiv.rootNode = null; // Root node of the map (always the selected one)
+    this.$internalMapDiv.linesCanBeShown = false; // For graphical reasons, avoids artifacts
+    this.$internalMapDiv.moveEntireGraphWithRoot = false; // When a root node swap occurs, the
                                           // entire graph needs to be moved to
                                           // the new graph center
 
     // Add a canvas to the DOM element associated with this selector
-    var canvas = Raphael (this[0], 0, 0, options.mapArea.width,
+    var canvas = Raphael (this.$internalMapDiv[0], 0, 0, options.mapArea.width,
                                          options.mapArea.height);
-    this.canvas = canvas; // Also save it as a property
-    $(this.canvas).css ('margin-left', '-100px'); // If the canvas has a dimension
-                                             // greater than its parent, don't
-                                             // hide its lines anyway
+    this.$internalMapDiv.canvas = canvas; // Also save it as a property
 
     // Add a class to the map DOM object to let node styles be applied
-    this.addClass ('nodemap');
+    this.$internalMapDiv.addClass ('nodemap');
 
     // If the map's element gets resized, every coordinate calculation gets
     // spoiled, we need to prevent this by having a resize callback
-    var $thisMap = this;
-    this.resize( function () {
+    var $thisMap = this.$internalMapDiv;
+    this.$internalMapDiv.resize( function () {
       // Update map area width and height
       $thisMap.options.mapArea.width = $thisMap.width();
       $thisMap.options.mapArea.height = $thisMap.height();
@@ -623,7 +641,7 @@
 
   // Create the nodes of the map recursively
   $.fn.createNodes = function (elementsList) { // Typical scope: $('body') map object
-    var $map = this; // Save 'this' (the map selector) for any closure
+    var $map = this.$internalMapDiv; // Save 'this' (the internal map selector) for any closure
     var $rootLi = $('>ul>li', elementsList);
     if ($rootLi.length === 0) { // A root node must exist
       $.error ("No root node <li> item found - one is needed");
@@ -649,7 +667,7 @@
   // If a scale factor has been applied to any of our parent containers, this
   // will allow the map nodes' drag to function properly even if scaled (see (*))
   $.fn.setScale = function (scaleFactor) { // Typical scope: $('body') map object
-    this.options.scale = scaleFactor;
+    this.$internalMapDiv.options.scale = scaleFactor;
     return this;
   }
 
@@ -657,7 +675,7 @@
   // if it exists. Returns 'null' if there's no node with the given id.
   $.fn.getNodeFromId = function (nodeId) { // Typical scope: $('body') map object
 
-    var nodesWithId = $.grep (this.nodes, function (node) {
+    var nodesWithId = $.grep (this.$internalMapDiv.nodes, function (node) {
       if (node.id === nodeId)
         return true;
       else
@@ -678,26 +696,31 @@
   // Creates a new root node for this map (throws an error if there's already one and the map hasn't been
   // cleared). Returns the Node root object that has been created.
   $.fn.createRootNode = function (id, href, text) { // Typical scope: $('body') object
-    if (this.rootNode != null) {
+    if (this.$internalMapDiv.rootNode != null) {
       $.error ("This map has already a root node");
       return;
     }
-    var $emptySelector = $();
-    $emptySelector.addNode (this, null, 0 /* Root has always 0 depth */, id, href || undefined, text || undefined);
-    this.rootNode = $emptySelector.node;
+    
+    // Add the root node
+    var $emptySelector = $(); // Only used to store the .node object, there's no original DOM element attached
+    $emptySelector.addNode (this.$internalMapDiv, null, 0 /* Root has always 0 depth */, id, href || undefined, text || undefined);
+    this.$internalMapDiv.rootNode = $emptySelector.node;
+    
     // Resize the map even after only one node has been inserted (updates height and width)
-    this.resize();
-    this.linesCanBeShown = true; // Show the connectors (only for graphical reasons, see ($*))
-    return this.rootNode;
+    this.$internalMapDiv.resize();
+    this.$internalMapDiv.linesCanBeShown = true; // Show the connectors (only for graphical reasons, see ($*))
+    
+    return this.$internalMapDiv.rootNode;
   }
   
   // Deletes all the nodes and connections in the graph, this is a shorthand for rootNode.deleteNode();
   $.fn.clearMap = function () { // Typical scope: $(body) map object
-    this.rootNode.deleteNode ();
+    this.$internalMapDiv.rootNode.deleteNode ();
     return null;
   }
 
   // ~-~-~ Map internal functions beyond this point ~-~-~
+  //    These should refer to the internal map object
 
   // - internal use - Adds the nodes recursively to the map given:
   //  - the map object

@@ -19,8 +19,8 @@
     var map;
     $(document).ready(function() {
 
-      map = $('#map').createNodeMap();
-      map.createNodes($('#ulList')).setScale(0.5);
+      map = $('#map').createNodeMap({scaleLevel: 0.5});
+      map.createNodes($('#ulList'));
     });
 
     function addSub3Node () {
@@ -104,10 +104,7 @@
     If a parent element with scale properties is present, the scale level will
     have to be specified when creating map contents as well.
   -->
-  <div id="wrapper" style="transform-origin: 0% 0%; transform: scale(0.5); border: 2px solid black;
-  overflow: hidden; height: 1200px; width:1200px;">
-    <div id="map">
-    </div>
+  <div id="map" style="width:550px; height:550px; border: 2px solid black;">
   </div>
 
 </body>
