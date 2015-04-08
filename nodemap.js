@@ -57,6 +57,7 @@
                                     // position when dragging starts, if this is
                                     // true, we don't consider this node at all
                                     // when calculating repulsion forces
+    this.callback = null;
 
     // Create the node element in the page and append it to the map's object.
     // If there's no href destination, just insert a div element instead of <a>
@@ -130,14 +131,21 @@
       }
     });
 
-    //TODO click stuff
+    var thisNode = this;
+    this.$element.click (function (event) { // Execute a user-defined callback if set
+    // Avoid anchor nodes (i.e. objects with a href action) to redirect the page
+      event.preventDefault();
+      if (thisNode.callback != null)
+        thisNode.callback (thisNode);
+    });
   }
 
   // Add a child node to the 'this' parent node. 'id' can be null if no id is
   // needed to reference the node later
   Node.prototype.addChildNode = function (id, href, name) {
     // Create a new node element as my child and an incremented depth level
-    this.$map.addNode (this.$map, this.$element, this.depthLevel+1, id, href, name);
+    var $childNode = this.$map.addNode (this.$map, this.$element, this.depthLevel+1, id, href, name);
+    return $childNode.node; // Return the node object, not the associated selector
   }
 
   // Delete this node from the map. If called on the root will delete all the
@@ -721,6 +729,7 @@
 
   // ~-~-~ Map internal functions beyond this point ~-~-~
   //    These should refer to the internal map object
+  //      and are not meant to be called directly
 
   // - internal use - Adds the nodes recursively to the map given:
   //  - the map object
@@ -766,7 +775,6 @@
   $.fn.changeRootNodeTo = function (node) { // Typical scope: $('body') map object
 
     this.rootNode = node;
-
     // Rewire the parent of this node to be a child of this node recursively
     // until we've reached the old root node
     var demoteMyParentToMyChild = function (node, $formerParent, $newParent) {

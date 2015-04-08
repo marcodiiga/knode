@@ -1,7 +1,17 @@
 .nodemap .node { /* Nodes of a nodemap */
   z-index:100; /* needed otherwise the canvas will cover the nodes */
 
-  background: #5e69b2;
+  
+  /* Blue background gradient to black - diagonal taken from http://www.colorzilla.com/gradient-editor/ */
+  background: rgb(0,104,196); /* Old browsers */
+  background: -moz-linear-gradient(-45deg,  rgba(0,104,196,1) 0%, rgba(0,0,0,1) 100%); /* FF3.6+ */
+  background: -webkit-gradient(linear, left top, right bottom, color-stop(0%,rgba(0,104,196,1)), 
+    color-stop(100%,rgba(0,0,0,1))); /* Chrome,Safari4+ */
+  background: -webkit-linear-gradient(-45deg,  rgba(0,104,196,1) 0%,rgba(0,0,0,1) 100%); /* Chrome10+,Safari5.1+ */
+  background: -o-linear-gradient(-45deg,  rgba(0,104,196,1) 0%,rgba(0,0,0,1) 100%); /* Opera 11.10+ */
+  background: -ms-linear-gradient(-45deg,  rgba(0,104,196,1) 0%,rgba(0,0,0,1) 100%); /* IE10+ */
+  background: linear-gradient(135deg,  rgba(0,104,196,1) 0%,rgba(0,0,0,1) 100%); /* W3C */
+  
   text-decoration: none;
   border: 1px solid black;
 
@@ -29,6 +39,10 @@
   -ms-user-select: none;
   user-select: none;
   cursor: default;
+}
+
+.nodemap * { /* Apply a font to all the nodemap elements (div, a, whatever) */
+    font-family: ‘Lucida Sans Unicode’, ‘Lucida Grande’, sans-serif;
 }
 
 .nodemap { /* The nodemap itself */
