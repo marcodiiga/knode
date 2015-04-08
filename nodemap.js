@@ -640,7 +640,7 @@
     $map.resize(); // Resize the map AFTER all the nodes have been created. This
                    // gives us the possiblity of calculating if nodes need
                    // additional space in the map's area
-    $map.linesCanBeShown = true;  // Due to a graphic effect during nodes moving,
+    $map.linesCanBeShown = true;  // ($*) Due to a graphic effect during nodes moving,
                                   // it is nicer to just show the connectors when
                                   // nodes have been positioned for the first time
     return this;
@@ -685,7 +685,9 @@
     var $emptySelector = $();
     $emptySelector.addNode (this, null, 0 /* Root has always 0 depth */, id, href || undefined, text || undefined);
     this.rootNode = $emptySelector.node;
-    this.resize(); // Resize the map even after only one node has been inserted (updates height and width)
+    // Resize the map even after only one node has been inserted (updates height and width)
+    this.resize();
+    this.linesCanBeShown = true; // Show the connectors (only for graphical reasons, see ($*))
     return this.rootNode;
   }
   
