@@ -208,6 +208,11 @@
     });
     return parents;
   }
+  
+  // Get all this node's children nodes in this map
+  Node.prototype.getChildrenInMap = function () {
+    return this.children;
+  }
 
 
   // ~-~-~ Node internal functions beyond this point ~-~-~
@@ -744,6 +749,11 @@
   $.fn.clearMap = function () { // Typical scope: $(body) map object
     this.$internalMapDiv.rootNode.deleteNode ();
     return null;
+  }
+  
+  // Getter for the root node
+  $.fn.getRootNode = function () { // Typical scope: $(body) map object
+    return this.$internalMapDiv.rootNode;
   }
 
   // ~-~-~ Map internal functions beyond this point ~-~-~
