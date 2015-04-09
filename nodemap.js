@@ -94,7 +94,7 @@
     } else {
       this.$parent.node.children.push (this); // Add me as a child of my parent
       // Add a line from this node to my parent
-      $map.lines[$map.lines.length] = new Line ($map, this.$parent.node, this);
+      $map.lines.push (new Line ($map, this.$parent.node, this));
     }
 
     var thisNode = this;
@@ -141,7 +141,7 @@
   }
 
   // Add a child node to the 'this' parent node. 'id' can be null if no id is
-  // needed to reference the node later
+  // needed to reference the node later. Returns a reference to the new child node.
   Node.prototype.addChildNode = function (id, href, name) {
     // Create a new node element as my child and an incremented depth level
     var $childNode = this.$map.addNode (this.$map, this.$element, this.depthLevel+1, id, href, name);
@@ -196,6 +196,17 @@
     // Rewire the entire map to have this node as the root one. This also causes
     // losing equilibrium to the entire tree
     this.$map.changeRootNodeTo (this);
+  }
+  
+  // Get all this node's parent nodes in this map
+  Node.prototype.getParentsInMap = function () {
+    var thisNode = this;
+    var parents = [];
+    $.each (this.$map.lines, function () {
+      if (this.endNode === thisNode)
+        parents.push (this.startNode);
+    });
+    return parents;
   }
 
 
@@ -678,6 +689,14 @@
     this.$internalMapDiv.options.scale = scaleFactor;
     return this;
   }
+  
+  // Accessors for connectors and nodes
+  $.fn.getNodes = function () { // Typical scope: $('body') map object
+    return this.$internalMapDiv.nodes;
+  }
+  $.fn.getLines = function () { // Typical scope: $('body') map object
+    return this.$internalMapDiv.lines;
+  }
 
   // Search for a node with the given id in the map and returns the element
   // if it exists. Returns 'null' if there's no node with the given id.
@@ -758,8 +777,8 @@
                           id   || this.attr('id'),     // node id
                           href || this.attr('href'),   // href
                           depthLevel);                 // depth level of child
-    $map.nodes[$map.nodes.length] = this.node; // Keep a list of all the nodes
-                                               // for some distance calculations
+    $map.nodes.push (this.node); // Keep a list of all the nodes
+                                 // for some distance calculations
     // Everytime a node is added its parent's subtree needs to be reshaped
     if ($parent != null) {
       // Every other sibling of this node will have to be re-positioned around
@@ -782,7 +801,7 @@
         return; // We reached the former root node, stop the recursion
 
       // Add the former parent to node's children
-      node.children[node.children.length] = $formerParent.node;
+      node.children.push ($formerParent.node);
       // Delete 'node' from the children of its former parent
       $formerParent.node.children = $.grep ($formerParent.node.children, function (child) {
         return child != node;
@@ -796,6 +815,16 @@
     };
 
     demoteMyParentToMyChild (node, node.$parent, null);
+    
+    node.depthLevel = 0; // Recursively update all the nodes' depths (DFS)
+    var updateChildNodesDepths = function (node, childrenDepth) {
+      $.each (node.children, function () {
+        this.depthLevel = childrenDepth;
+        updateChildNodesDepths (this, childrenDepth + 1); // Recursively update subchildren
+      });
+    };
+    
+    updateChildNodesDepths (node, 1);
 
     this.moveEntireGraphWithRoot = true; // Moves everything with the new root
     // Causes the entire tree to lose equilibrium and force a reposition
