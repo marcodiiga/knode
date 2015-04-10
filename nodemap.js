@@ -243,10 +243,10 @@
                                           // sure the previous timer isn't running
     this.stopSubtreeMoving = false; // Reset the timeout flag
     this.stabilityTimeout = setTimeout(function () {
-      thisNode.$map.rootNode.stopSubtreeMoving = true; // Stop the entire tree
-      finalizeConnectors (thisNode.$map);         // Make sure connectors
-                                                  // are fully black
-      console.log ("MOVEMENT STOPPED TIMEOUT");
+      thisNode.stopSubtreeMoving = true;  // Stop my subtree
+      finalizeConnectors (thisNode.$map); // Make sure connectors are fully black
+      
+      // console.log ("MOVEMENT STOPPED TIMEOUT for node " + thisNode.name); // TODO: remove debug code
     }, MOVEMENT_TIMEOUT * 1000);
 
     this.animationLoop (); // Start the animation loop
@@ -260,6 +260,8 @@
     // closer to the equilibrium position. This has to be done before drawing the
     // connectors in order to have an up-to-date position when drawing lines.
     var isMySubtreeStable = this.subtreeSeekEquilibrium();
+    
+    // console.log ("Node " + this.name + " thinks his subtree is stable: " + isMySubtreeStable); // TODO: remove debug code
     
     // For graphical reasons lines shouldn't be shown when the map is being
     // resized and nodes are scattered in their "hasPosition" radial madness.
@@ -419,7 +421,7 @@
       this.dy = 0;
     if (Math.abs(this.dx) + Math.abs(this.dy) === 0) { // If both are insignificant
       this.dx = this.dy = 0;
-      console.log("Node " + this.name + " has reached equilibrium");
+      // console.log("Node " + this.name + " has reached equilibrium"); // TODO: remove debug code
       return true; // Yes, I've reached equilibrium
     }
 

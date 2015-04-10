@@ -1,7 +1,6 @@
 .nodemap .node { /* Nodes of a nodemap */
   z-index:100; /* needed otherwise the canvas will cover the nodes */
 
-  
   /* Blue background gradient to black - diagonal taken from http://www.colorzilla.com/gradient-editor/ */
   background: rgb(0,104,196); /* Old browsers */
   background: -moz-linear-gradient(-45deg,  rgba(0,104,196,1) 0%, rgba(0,0,0,1) 100%); /* FF3.6+ */
@@ -23,11 +22,25 @@
 	border-radius: 50px;
 }
 
+.nodemap .parent { /* Nodes of a nodemap which are also marked as parent (they have a different color by CSS override) */
+  background: #61636b; /* Old browsers */
+  background: -moz-linear-gradient(top,  #61636b 0%, #828c95 36%, #28343b 100%); /* FF3.6+ */
+  background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#61636b), color-stop(36%,#828c95), color-stop(100%,#28343b)); /* Chrome,Safari4+ */
+  background: -webkit-linear-gradient(top,  #61636b 0%,#828c95 36%,#28343b 100%); /* Chrome10+,Safari5.1+ */
+  background: -o-linear-gradient(top,  #61636b 0%,#828c95 36%,#28343b 100%); /* Opera 11.10+ */
+  background: -ms-linear-gradient(top,  #61636b 0%,#828c95 36%,#28343b 100%); /* IE10+ */
+  background: linear-gradient(to bottom,  #61636b 0%,#828c95 36%,#28343b 100%); /* W3C */
+}
+
 .nodemap .node>p { /* Visualize text paragraphs centered in the nodes */
   color: white;
   display: table-cell;
   vertical-align: middle;
   text-align: center;
+}
+
+.nodemap .parent>p {
+  color: #CCCCCC;
 }
 
 .nodemap div.node>p { /* Makes p elements children of div nodes
@@ -42,7 +55,7 @@
 }
 
 .nodemap * { /* Apply a font to all the nodemap elements (div, a, whatever) */
-    font-family: ‘Lucida Sans Unicode’, ‘Lucida Grande’, sans-serif;
+    font-family: 'Lucida Sans Unicode', 'Lucida Grande', sans-serif;
 }
 
 .nodemap { /* The nodemap itself */
