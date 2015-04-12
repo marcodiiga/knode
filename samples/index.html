@@ -2,7 +2,8 @@
 <html>
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-
+  <title>KNode demo page</title>
+  
   <link href="../style.css" type="text/css" rel="stylesheet"/>
   <!-- jQuery and UI for draggable nodes -->
   <script type="text/javascript" src="../jquery/2.1.3/jquery.min.js"></script>
@@ -15,30 +16,28 @@
   <script type="text/javascript">
 
     // Create the map directly from the DOM list. If a DOM list isn't available
-    // the map can also be created with the following API
+    // the map can also be created with the provided API (see recreateMapFromAPI())
     var map;
     $(document).ready(function() {
-
       map = $('#map').createNodeMap({scaleLevel: 0.5});
       map.createNodes($('#ulList'));
     });
 
-    function addSub3Node () {
-      var sub3Node = map.getNodeFromId ("sub3");
-      sub3Node.addChildNode (null, "href", "I'm a child");
+    function addMosquitoes () {
+      var animalsNode = map.getNodeFromId ("animals");
+      animalsNode.addChildNode (null, "href", "I'm a mosquito");
     }
-    function removeSubSubNode22 () {
-      var subsub22Node = map.getNodeFromId ("subsub22");
-      subsub22Node.deleteNode ();
+    function removeSubnode2 () {
+      var subnode2 = map.getNodeFromId ("subnode2");
+      subnode2.deleteNode ();
     }
-    function selectSubnode4 () {
-      var subnode4 = map.getNodeFromId ("subnode4");
-      subnode4.markAsSelected ();
+    function makeAnimalsRoot () {
+      var animals = map.getNodeFromId ("animals");
+      animals.markAsSelected ();
     }
 
     function recreateMapFromAPI () {
         map.clearMap ();
-        
         // Create a new root node
         var newRoot = map.createRootNode ("root", null, "new Root");
         // and a child element
@@ -50,9 +49,10 @@
 
 </head>
 <body>
-  <input type="button" onclick="addSub3Node()" value="Add Sub3Node"/>
-  <input type="button" onclick="removeSubSubNode22()" value="Remove SubSub22Node"/>
-  <input type="button" onclick="selectSubnode4()" value="Select subnode4"/>
+  <p>Welcome to <b>KNode demo page</b>. Take a look at the page's source code to learn more on KNode.</p>
+  <input type="button" onclick="addMosquitoes()" value="Add Mosquitoes"/>
+  <input type="button" onclick="removeSubnode2()" value="Remove Subnode2"/>
+  <input type="button" onclick="makeAnimalsRoot()" value="Make Animals root"/>
   <input type="button" onclick="recreateMapFromAPI()" value="Delete map and recreate from API"/>
   <div id="ulList">
     <!--
@@ -71,27 +71,27 @@
     <ul>
       <li><a href="root" id="root">Root node</a>
         <ul>
-          <li><div>Subnode 1</div></li>
-          <li><a>Subnode 2 (also a list)</a>
+          <li><div>Div subnode</div></li>
+          <li><a>Anchor subnode</a>
             <ul>
-              <li><a>Sub Subnode 2-1</a></li>
-              <li><a id="subsub22">Sub Subnode 2-2</a></li>
-              <li><a href="subsubnode23">Sub Subnode 2-3</a></li>
+              <li><a>Subnode1</a></li>
+              <li><a id="subnode2">Subnode2</a></li>
+              <li><a href="subnode3">Subnode3</a></li>
             </ul>
           </li>
-          <li><a id="sub3">Subnode 3</a>
+          <li><a id="animals">Animals</a>
             <ul>
-              <li><a>Sub Subnode 3-1</a></li>
-              <li><a>Sub Subnode 3-2</a></li>
-              <li><a>Sub Subnode 3-3</a></li>
-              <li><a>Sub Subnode 3-4</a></li>
+              <li><a>Dog</a></li>
+              <li><a>Cat</a></li>
+              <li><a>Bird</a></li>
+              <li><a>Horse</a></li>
             </ul>
           </li>
-          <li><a id="subnode4">Subnode 4</a>
+          <li><a id="languages">Languages</a>
             <ul>
-              <li><a>Sub Subnode 4-1</a></li>
-              <li><a>Sub Subnode 4-2</a></li>
-              <li><a>Sub Subnode 2-3</a></li>
+              <li><a>English</a></li>
+              <li><a>Italian</a></li>
+              <li><a>French</a></li>
             </ul>
           </li>
         </ul>
