@@ -20,6 +20,7 @@
   -moz-border-radius: 50px;
 	-webkit-border-radius: 50px;
 	border-radius: 50px;
+  padding: 5px;
 }
 
 .nodemap .parent { /* Nodes of a nodemap which are also marked as parent (they have a different color by CSS override) */
