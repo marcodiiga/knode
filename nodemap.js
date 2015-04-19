@@ -532,7 +532,7 @@
       if (this.children.indexOf(otherEnd) !== -1)
         continue; // This is one of my children, keep on searching
       
-      if (otherEnd.beginDragging == false) // Same level of initialization-protection
+      if (otherEnd.beginDragging === true) // Same level of initialization-protection
         continue;
         
       f = this.calculateSingleAttractiveForceTowardsNode (otherEnd,
