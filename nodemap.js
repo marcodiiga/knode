@@ -510,10 +510,12 @@
         fx += f.dx;
         fy += f.dy;
       }
-      // And also the repulsive force from my parent node
-      f = this.calculateSingleRepulsionForceFromNode (this.$parent.node);
-      fx += f.dx;
-      fy += f.dy;
+      // And also the repulsive force from my parent node (if it's not being drag-initialized)
+      if (this.$parent.node.beginDragging == false) {
+        f = this.calculateSingleRepulsionForceFromNode (this.$parent.node);
+        fx += f.dx;
+        fy += f.dy;
+      }
     }
 
     // Using Hooke's Law, add an attractive force per each line I'm a part of
@@ -529,7 +531,10 @@
 
       if (this.children.indexOf(otherEnd) !== -1)
         continue; // This is one of my children, keep on searching
-
+      
+      if (otherEnd.beginDragging == false) // Same level of initialization-protection
+        continue;
+        
       f = this.calculateSingleAttractiveForceTowardsNode (otherEnd,
         Math.pow(this.depthLevel, 4)); // Powerful damping if we're deeply nested
       fx += f.dx;
