@@ -50,6 +50,9 @@
           planetsNode   = root.addChildNode ("planets", null, "Planets");
           
           sciencesNode.callback = function () {
+            if (map.getRootNode() === sciencesNode)
+              return;
+              
             sciencesNode.markAsSelected ();
             var delay = 0;
             setTimeout ( function() {
@@ -77,6 +80,9 @@
           };
           
           planetsNode.callback = function () {
+            if (map.getRootNode() === planetsNode)
+              return;
+              
             planetsNode.markAsSelected ();
             languagesNode.deleteNode ();            
             animalsNode.deleteNode ();
@@ -95,6 +101,9 @@
           };
           
           languagesNode.callback = function () {
+            if (map.getRootNode() === languagesNode)
+              return;
+          
             languagesNode.markAsSelected ();
             root.$element.addClass('parent');
             sciencesNode.deleteNode ();            
@@ -113,6 +122,9 @@
           };
           
           animalsNode.callback = function () {
+            if (map.getRootNode() === animalsNode)
+              return;
+          
             animalsNode.markAsSelected ();
             languagesNode.deleteNode ();            
             planetsNode.deleteNode ();
