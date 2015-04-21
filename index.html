@@ -10,47 +10,138 @@
 
     <title>KNode demo</title>
     
-    <link href="../style.css" type="text/css" rel="stylesheet"/>
+    <link href="knode/style.css" type="text/css" rel="stylesheet"/>
     <!-- jQuery and UI for draggable nodes -->
-    <script type="text/javascript" src="../jquery/2.1.3/jquery.min.js"></script>
-    <script type="text/javascript" src="../jqueryui/1.11.4/jquery-ui.min.js"></script>
+    <script type="text/javascript" src="knode/jquery/2.1.3/jquery.min.js"></script>
+    <script type="text/javascript" src="knode/jqueryui/1.11.4/jquery-ui.min.js"></script>
     <!-- Raphael for SVG graphics -->
-    <script type="text/javascript" src="../raphael/2.1.4/raphael-min.js"></script>
+    <script type="text/javascript" src="knode/raphael/2.1.4/raphael-min.js"></script>
     <!-- Node map -->
-    <script type="text/javascript" src="../nodemap.js"></script>
+    <script type="text/javascript" src="knode/nodemap.js"></script>
 
     <script type="text/javascript">
 
       // Create the map directly from the DOM list. If a DOM list isn't available
       // the map can also be created with the provided API (see recreateMapFromAPI())
       var map;
+      var root;
       $(document).ready(function() {
+      
         map = $('#map').createNodeMap({scaleLevel: 0.5});
-        map.createNodes($('#ulList'));
+        root = map.createRootNode ("root", null, "Root node");
+        
+        var sciencesNode, languagesNode, animalsNode, planetsNode;
+        
+        var gotoHrefCallback = function () {
+          window.location = this.href;
+        };
+        
+        root.callback = function () {
+          $('#mosquitoBtn').css('display', 'none');
+          this.markAsSelected ();
+          this.$element.removeClass("parent");
+          $.each(map.getNodes(), function () {
+            if(this.id != "root")
+              this.deleteNode();
+          });
+          sciencesNode  = root.addChildNode ("sciences", null, "Sciences");
+          languagesNode = root.addChildNode ("languages", null, "Languages");
+          animalsNode   = root.addChildNode ("animals", null, "Animals");
+          planetsNode   = root.addChildNode ("planets", null, "Planets");
+          
+          sciencesNode.callback = function () {
+            sciencesNode.markAsSelected ();
+            var delay = 0;
+            setTimeout ( function() {
+              languagesNode.deleteNode ();            
+              }, (delay += 50) );
+            setTimeout ( function() {
+              animalsNode.deleteNode ();
+              }, (delay += 50) );
+            setTimeout ( function() {
+              planetsNode.deleteNode ();
+              }, (delay += 50) );
+            root.$element.addClass('parent');
+            setTimeout ( function() {
+              sciencesNode.addChildNode ("biology", "http://en.wikipedia.org/wiki/Biology", "Biology").callback = gotoHrefCallback;
+              }, (delay += 500) );
+            setTimeout ( function() {
+              sciencesNode.addChildNode ("chemistry", "http://en.wikipedia.org/wiki/Chemistry", "Chemistry").callback = gotoHrefCallback;
+              }, (delay += 500) );
+            setTimeout ( function() {
+              sciencesNode.addChildNode ("mathematics", "http://en.wikipedia.org/wiki/Mathematics", "Mathematics").callback = gotoHrefCallback;
+              }, (delay += 500) );
+            setTimeout ( function() {
+              sciencesNode.addChildNode ("medicine", "http://en.wikipedia.org/wiki/Medicine", "Medicine").callback = gotoHrefCallback;
+              }, (delay += 500) );
+          };
+          
+          planetsNode.callback = function () {
+            planetsNode.markAsSelected ();
+            languagesNode.deleteNode ();            
+            animalsNode.deleteNode ();
+            sciencesNode.deleteNode ();
+            root.$element.addClass('parent');
+              
+            planetsNode.addChildNode ("saturn", null, "Saturn");
+            var earthNode = planetsNode.addChildNode ("earth", null, "Earth");
+            planetsNode.addChildNode ("jupiter", null, "Jupiter");
+            planetsNode.addChildNode ("mars", null, "Mars");            
+            setTimeout ( function() {
+              var moonNode = earthNode.addChildNode ("moon", null, "<img class='noBoxShadow' src='images/moon.png'> Moon");
+              moonNode.$element.css('width', '70px');
+              moonNode.$element.css('height', '70px');
+              }, 1500 );
+          };
+          
+          languagesNode.callback = function () {
+            languagesNode.markAsSelected ();
+            root.$element.addClass('parent');
+            sciencesNode.deleteNode ();            
+            animalsNode.deleteNode ();
+            planetsNode.deleteNode ();
+            var delay = 0;
+            setTimeout ( function() {
+              languagesNode.addChildNode ("italian", null, "<img class='noBoxShadow' src='images/italy_flag.jpg'> Italian");              
+              }, (delay += 500) );
+            setTimeout ( function() {
+              languagesNode.addChildNode ("english", null, "<img class='noBoxShadow' src='images/england_flag.jpg'> English");
+              }, (delay += 500) );
+            setTimeout ( function() {
+              languagesNode.addChildNode ("french", null, "<img class='noBoxShadow' src='images/france_flag.jpg'> French");
+              }, (delay += 500) );
+          };
+          
+          animalsNode.callback = function () {
+            animalsNode.markAsSelected ();
+            languagesNode.deleteNode ();            
+            planetsNode.deleteNode ();
+            sciencesNode.deleteNode ();
+            root.$element.addClass('parent');
+            $('#mosquitoBtn').css('display', 'block');
+            
+            animalsNode.addChildNode ("mosquito", null, "Annoying Mosquito");
+            animalsNode.addChildNode ("mosquito", null, "Annoying Mosquito");
+            animalsNode.addChildNode ("mosquito", null, "Annoying Mosquito");
+            animalsNode.addChildNode ("mosquito", null, "Annoying Mosquito");
+            animalsNode.addChildNode ("mosquito", null, "Annoying Mosquito");
+          };
+        };
+        root.callback();
       });
-
-      function addMosquitoes () {
-        var animalsNode = map.getNodeFromId ("animals");
-        animalsNode.addChildNode (null, "href", "I'm a mosquito");
+      
+      function killMosquitoNode() {
+        var mosquitoNode = null;
+        var nodes = map.getNodes();
+        for (var i=0; i<nodes.length; ++i) {       
+          if(nodes[i].id == "mosquito") {
+            mosquitoNode = nodes[i];
+            break;
+          }
+        }
+        mosquitoNode.deleteNode();
       }
-      function removeSubnode2 () {
-        var subnode2 = map.getNodeFromId ("subnode2");
-        subnode2.deleteNode ();
-      }
-      function makeAnimalsRoot () {
-        var animals = map.getNodeFromId ("animals");
-        animals.markAsSelected ();
-      }
-
-      function recreateMapFromAPI () {
-          map.clearMap ();
-          // Create a new root node
-          var newRoot = map.createRootNode ("root", null, "new Root");
-          // and a child element
-          newRoot.addChildNode(null, null, "New Child");
-          newRoot.addChildNode(null, null, "New Child 2");
-      }
-
+      
     </script>
     
   </head>
@@ -63,7 +154,7 @@
           <a id="forkme_banner" href="https://github.com/marcodiiga/knode">View on GitHub</a>
 
           <h1 id="project_title">KNode</h1>
-          <h2 id="project_tagline">KNode is a node map web rendering library for dynamic content management</h2>
+          <h2 id="project_tagline">KNode is a node map web rendering library for dynamic content management optimized for Chrome and Firefox</h2>
 
             <section id="downloads">
               <a class="zip_download_link" href="https://github.com/marcodiiga/knode/zipball/master">Download this project as a .zip file</a>
@@ -78,64 +169,17 @@
         <h3><a id="welcome-to-github-pages" class="anchor" href="#welcome-to-github-pages" aria-hidden="true"><span class="octicon octicon-link"></span></a>Welcome to KNode demo page</h3>
 
         <p>This is KNode: a web rendering library for node maps and dynamic content management
-
-        <input type="button" onclick="addMosquitoes()" value="Add Mosquitoes"/>
-        <input type="button" onclick="removeSubnode2()" value="Remove Subnode2"/>
-        <input type="button" onclick="makeAnimalsRoot()" value="Make Animals root"/>
-        <input type="button" onclick="recreateMapFromAPI()" value="Delete map and recreate from API"/>
-        <div id="ulList">
-          <!--
-            This is a list of elements to generate a map directly from the DOM
-            The format is
-
-              <ul>
-                <li><a href="This list item links to..">List Item</a></li>
-                <li>
-                  <ul>
-                    <li><div>SubList Item which doesn't link to anything</div></li>
-                  </ul>
-                </li>
-              </ul>
-          -->
-          <ul>
-            <li><a href="root" id="root">Root node</a>
-              <ul>
-                <li><div>Div subnode</div></li>
-                <li><a>Anchor subnode</a>
-                  <ul>
-                    <li><a>Subnode1</a></li>
-                    <li><a id="subnode2">Subnode2</a></li>
-                    <li><a href="subnode3">Subnode3</a></li>
-                  </ul>
-                </li>
-                <li><a id="animals">Animals</a>
-                  <ul>
-                    <li><a>Dog</a></li>
-                    <li><a>Cat</a></li>
-                    <li><a>Bird</a></li>
-                    <li><a>Horse</a></li>
-                  </ul>
-                </li>
-                <li><a id="languages">Languages</a>
-                  <ul>
-                    <li><a>English</a></li>
-                    <li><a>Italian</a></li>
-                    <li><a>French</a></li>
-                  </ul>
-                </li>
-              </ul>
-            </li>
-          </ul>
-        </div>
-
+        
         <!--
           The map will be created in the javascript-selected map tag (#map here).
           If a parent element with scale properties is present, the scale level will
           have to be specified when creating map contents as well.
         -->
-        <div id="map" style="width:550px; height:550px; border: 2px solid black;">
-        </div>
-        
+        <center>
+          <div id="map" style="width:450px; height:450px; border: 2px solid black;">          
+          </div>
+          <input type="button" id="mosquitoBtn" onclick="killMosquitoNode()" style="display:none; width:400px; margin: 5px;" value="Kill an annoying mosquito"/>
+        </center>
       </section>
     </div>
 
@@ -144,6 +188,7 @@
       <footer class="inner">
         <p class="copyright">KNode maintained by <a href="https://github.com/marcodiiga">@marcodiiga</a></p>
         <p>Published with <a href="https://pages.github.com">GitHub Pages</a></p>
+        <p>Flags images courtesy of <a href="http://www.all-flags-world.com/">AllFlagsWorld.com</a></p>
       </footer>
     </div>
 
