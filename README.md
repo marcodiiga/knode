@@ -6,4 +6,4 @@ KNode is a node map web rendering library for dynamic content management
 
 Check out the [Wiki page quickstart](https://github.com/marcodiiga/knode/wiki) to learn more.
 
-KNode is open source software licensed under a permissive BSD license. Pull requests are welcome to fix bugs and add new features.
+KNode is open source BSD-licensed software. Pull requests are welcome to fix bugs and add new features.
