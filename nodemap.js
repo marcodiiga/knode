@@ -37,7 +37,7 @@
   // ---------- Node and Line class and methods ----------
 
   // Typical scope: Node object
-  var Node = function ($map, $parent, nodeName, nodeId, href, depthLevel) {
+  var Node = function ($map, $parent, nodeName, nodeId, href, depthLevel, customClass) {
 
     this.$map         = $map;
     this.name         = nodeName;
@@ -58,6 +58,7 @@
                                     // true, we don't consider this node at all
                                     // when calculating repulsion forces
     this.callback = null;
+    this.customClass = customClass;
 
     // Create the node element in the page and append it to the map's object.
     // If there's no href destination, just insert a div element instead of <a>
@@ -66,6 +67,8 @@
     else
       this.$element = $('<div><p>' + this.name + '</p></div>');
     this.$element.addClass('node');
+    if(this.customClass != undefined)
+      this.$element.addClass(customClass);
     this.$element.node = this; // The <a>/<div> element stores a reference to us and
                                // we also store a reference to the <a> element
     this.$map.prepend (this.$element);
@@ -793,7 +796,8 @@
                           text || this.text(),         // nodeName
                           id   || this.attr('id'),     // node id
                           href || this.attr('href'),   // href
-                          depthLevel);                 // depth level of child
+                          depthLevel,                  // depth level of child
+                          this.attr('class'));         // node class
     $map.nodes.push (this.node); // Keep a list of all the nodes
                                  // for some distance calculations
     // Everytime a node is added its parent's subtree needs to be reshaped
