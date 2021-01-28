@@ -47,6 +47,13 @@
 
   </script>
 
+  <style>
+    /* Custom backgound for nodes with "dog" class */
+    .nodemap .node.dog{
+      background: linear-gradient(135deg,  rgba(200,10,10,1) 0%,rgba(0,0,0,1) 100%);
+    }
+  </style>
+
 </head>
 <body>
   <p>Welcome to <b>KNode demo page</b>. Take a look at the page's source code to learn more on KNode.</p>
@@ -81,7 +88,7 @@
           </li>
           <li><a id="animals">Animals</a>
             <ul>
-              <li><a>Dog</a></li>
+              <li><a class="dog">Dog</a></li>
               <li><a>Cat</a></li>
               <li><a>Bird</a></li>
               <li><a>Horse</a></li>
